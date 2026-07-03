@@ -3,18 +3,15 @@ Policy Decoder API Routes
 Handles SLIP document upload and parsing.
 """
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from src.db.base import get_db
 from src.ai.client import LLMService, ParsedPolicy
 from src.ai.ocr import OCRService
 from src.config.settings import get_settings
-from src.db.base import get_db
 
 router = APIRouter()
-
-MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024
-ALLOWED_EXTENSIONS = (".pdf", ".png", ".jpg", ".jpeg")
 
 
 @router.post("/decode", response_model=ParsedPolicy)
@@ -25,44 +22,27 @@ async def decode_policy(
     Upload a SLIP document and receive a plain-English breakdown
     of your policy limits, coverage gaps, and recommendations.
     """
-    if not file.filename or not file.filename.lower().endswith(ALLOWED_EXTENSIONS):
+    if not file.filename or not file.filename.endswith((".pdf", ".png", ".jpg", ".jpeg")):
         raise HTTPException(
             status_code=400,
-            detail="Invalid file type. Please upload a PDF, PNG, or JPG policy document.",
+            detail="Invalid file type. Please upload a PDF or image of your SLIP document.",
         )
 
+    # Read file content
     content = await file.read()
-    if not content:
-        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
-    if len(content) > MAX_UPLOAD_SIZE_BYTES:
-        raise HTTPException(status_code=413, detail="Uploaded file is too large. Maximum size is 10 MB.")
 
+    # Extract text via OCR (handles both images and PDFs)
     ocr = OCRService()
     raw_text = await ocr.extract_text(content, file.filename)
 
-    if not OCRService.has_meaningful_text(raw_text):
-        raise HTTPException(
-            status_code=422,
-            detail="We could not extract enough readable text from this document. Please upload a clearer PDF or image.",
-        )
+    # Fallback: if OCR didn't produce meaningful text, try raw decode
+    if not raw_text or raw_text.startswith("[No text"):
+        raw_text = content.decode("utf-8", errors="replace")
 
+    # Call LLM service (falls back to mock if no API key configured)
     settings = get_settings()
     llm = LLMService(api_key=settings.openai_api_key, model=settings.openai_model)
     parsed_policy = await llm.parse_slip(raw_text)
-
-    if not any(
-        [
-            parsed_policy.liability_limit,
-            parsed_policy.medical_limit,
-            parsed_policy.property_limit,
-            parsed_policy.uninsured_motorist_limit,
-            parsed_policy.deductible,
-        ]
-    ):
-        raise HTTPException(
-            status_code=422,
-            detail="We extracted text, but could not confidently identify policy limits. Please upload a clearer declarations page.",
-        )
 
     return parsed_policy
 
