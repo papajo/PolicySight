@@ -15,6 +15,7 @@ import {
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import { FeedbackButtons } from "./FeedbackLoop";
 import api from "../services/api";
 
 interface CoverageResult {
@@ -151,6 +152,7 @@ const ScenarioChecker: React.FC<Props> = ({ policyText: propText, standalone }) 
               <Typography variant="body1" sx={{ fontStyle: "italic", color: "text.secondary" }}>
                 {result.summary}
               </Typography>
+              <FeedbackButtons action="scenario_check" details={result.summary} />
             </CardContent>
           </Card>
 

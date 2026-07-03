@@ -65,6 +65,7 @@ from src.api.auth_routes import router as auth_router
 from src.api.timeline_routes import router as timeline_router
 from src.api.audit_routes import router as audit_router
 from src.api.state_routes import router as state_router
+from src.api.feedback_routes import router as feedback_router
 
 app.include_router(policy_router, prefix="/api/policies", tags=["Policies"])
 app.include_router(claims_router, prefix="/api/claims", tags=["Claims"])
@@ -74,3 +75,4 @@ app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(timeline_router, prefix="/api", tags=["Timeline"])
 app.include_router(audit_router, prefix="/api", tags=["Audit"])
 app.include_router(state_router, prefix="/api", tags=["State Rules"])
+app.include_router(feedback_router, prefix="/api", tags=["Feedback"])

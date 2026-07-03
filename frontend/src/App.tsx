@@ -30,6 +30,7 @@ import AuditTrail from "./pages/AuditTrail";
 import EdgeCaseClassifier from "./pages/EdgeCaseClassifier";
 import CostEstimator from "./pages/CostEstimator";
 import StateRules from "./pages/StateRules";
+import FeedbackDashboard from "./pages/FeedbackLoop";
 
 const App: React.FC = () => {
   const navigate = useNavigate();
@@ -115,6 +116,9 @@ const App: React.FC = () => {
               <Button color="inherit" component={Link} to="/states">
                 State Rules
               </Button>
+              <Button color="inherit" component={Link} to="/feedback">
+                Feedback
+              </Button>
             </Box>
           )}
 
@@ -194,6 +198,10 @@ const App: React.FC = () => {
           <Route
             path="/states"
             element={isAuthenticated ? <StateRules /> : <Login />}
+          />
+          <Route
+            path="/feedback"
+            element={isAuthenticated ? <FeedbackDashboard /> : <Login />}
           />
         </Routes>
       </Container>

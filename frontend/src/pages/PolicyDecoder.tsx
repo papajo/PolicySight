@@ -25,6 +25,7 @@ import WarningIcon from "@mui/icons-material/Warning";
 import ErrorIcon from "@mui/icons-material/Error";
 import CoverageExplainerPanel from "./CoverageExplainerPanel";
 import ScenarioChecker from "./ScenarioChecker";
+import { FeedbackButtons } from "./FeedbackLoop";
 import api from "../services/api";
 
 interface CoverageGap {
@@ -213,6 +214,7 @@ const PolicyDecoder: React.FC = () => {
                   Period: {result.effective_date || "?"} → {result.expiration_date || "?"}
                 </Typography>
               )}
+              <FeedbackButtons action="policy_decode" details={`${result.plain_english_summary.slice(0, 200)}`} />
             </CardContent>
           </Card>
 

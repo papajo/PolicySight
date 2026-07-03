@@ -15,6 +15,7 @@ import {
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import WarningIcon from "@mui/icons-material/Warning";
+import { FeedbackButtons } from "./FeedbackLoop";
 import api from "../services/api";
 
 interface CoverageDetermination {
@@ -115,6 +116,7 @@ const DecisionDraft: React.FC = () => {
                   Est. Payout: {result.total_estimated_payout}
                 </Typography>
               )}
+              <FeedbackButtons action="coverage_decision" details={result.claim_summary} />
             </CardContent>
           </Card>
 
