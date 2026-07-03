@@ -18,7 +18,6 @@ async def advocate_claim(
     file: UploadFile = File(...),
     description: str = Form(...),
     carrier_offer: float = Form(0.0),
-    db: Session = Depends(get_db),
 ):
     """
     Upload accident photos and a description of the claim.

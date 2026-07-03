@@ -26,32 +26,37 @@ async def forecast_rate(
     """
     from src.db.models import RateSnapshot, Claim
 
-    # Fetch user's rate history
-    rate_history = (
-        db.query(RateSnapshot)
-        .filter(RateSnapshot.user_id == user_id)
-        .all()
-    )
+    claims_data: list[dict] = []
+    peer_avg = 0.0
 
-    # Fetch user's claims history
-    claims_history = (
-        db.query(Claim)
-        .filter(Claim.user_id == user_id)
-        .all()
-    )
+    try:
+        # Fetch user's rate history (may fail if DB is not available)
+        rate_history = (
+            db.query(RateSnapshot)
+            .filter(RateSnapshot.user_id == user_id)
+            .all()
+        )
 
-    claims_data = [
-        {"id": c.id, "status": c.status, "filed_date": str(c.filed_date)}
-        for c in claims_history
-    ]
+        # Fetch user's claims history
+        claims_history = (
+            db.query(Claim)
+            .filter(Claim.user_id == user_id)
+            .all()
+        )
+
+        claims_data = [
+            {"id": c.id, "status": c.status, "filed_date": str(c.filed_date)}
+            for c in claims_history
+        ]
+
+        if rate_history:
+            peer_avg = sum(r.rate for r in rate_history) / len(rate_history)
+    except Exception:
+        # DB not available — use defaults
+        pass
 
     settings = get_settings()
     llm = LLMService(api_key=settings.openai_api_key, model=settings.openai_model)
-
-    # Calculate peer average from rate history
-    peer_avg = 0.0
-    if rate_history:
-        peer_avg = sum(r.rate for r in rate_history) / len(rate_history)
 
     forecast = await llm.forecast_rate(
         current_rate=current_rate,

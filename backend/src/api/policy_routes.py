@@ -16,7 +16,6 @@ router = APIRouter()
 @router.post("/decode", response_model=ParsedPolicy)
 async def decode_policy(
     file: UploadFile = File(...),
-    db: Session = Depends(get_db),
 ):
     """
     Upload a SLIP document and receive a plain-English breakdown
@@ -28,9 +27,10 @@ async def decode_policy(
             detail="Invalid file type. Please upload a PDF or image of your SLIP document.",
         )
 
-    # Read file content
+    # Read file content (binary safe)
     content = await file.read()
-    raw_text = content.decode("utf-8", errors="ignore")
+    # For images, we'd use OCR; for now, pass raw bytes as placeholder
+    raw_text = content.decode("utf-8", errors="replace")
 
     # Call LLM service (placeholder returns mock data)
     settings = get_settings()
