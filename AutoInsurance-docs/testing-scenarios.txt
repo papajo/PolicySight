@@ -1,0 +1,59 @@
+Below are practical **real-case testing scenarios** for an AI auto-insurance tool like PolicySight. These are written as QA-style cases an AI agent could be tested against.
+
+## Auto Insurance Testing Scenarios
+
+| #  | Scenario                                               | What the AI Agent Should Detect                                                                                                   | Expected Output                                                                                                                                  |
+| -- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1  | **Rear-end accident, driver not at fault**             | Liability likely belongs to the other driver; user may still use collision coverage if available; deductible may apply initially. | Explain claim options: file third-party claim, use own collision, ask about deductible recovery/subrogation.                                     |
+| 2  | **Hit-and-run in parking lot**                         | Coverage depends on collision, uninsured motorist property damage, police report requirement, state rules.                        | Ask whether there is collision/UMPD coverage and whether a police report was filed. Warn that “hit-and-run” does not automatically mean covered. |
+| 3  | **Borrowed car accident**                              | Insurance usually follows the vehicle first; driver’s policy may be secondary.                                                    | Identify owner’s policy as primary, borrower’s policy as possible excess, and flag permission issue.                                             |
+| 4  | **Food delivery accident**                             | Personal auto policy may exclude commercial/delivery use.                                                                         | Detect rideshare/delivery exposure and explain possible denial unless rideshare/delivery endorsement or platform coverage applies.               |
+| 5  | **Car stolen with keys inside**                        | Comprehensive coverage may apply, but insurer may investigate negligence/fraud.                                                   | Explain theft is generally comprehensive, but facts matter. Ask about police report, keys, ownership, and lienholder.                            |
+| 6  | **Flooded vehicle after heavy rain**                   | Flood is generally comprehensive, not collision.                                                                                  | Classify as comprehensive loss and check whether comprehensive coverage exists before giving confidence.                                         |
+| 7  | **Animal strike**                                      | Hitting a deer/animal is usually comprehensive; swerving into a tree is usually collision.                                        | Distinguish direct animal impact vs evasive crash.                                                                                               |
+| 8  | **Friend drives car without permission**               | Possible coverage denial or treated as unauthorized use/theft depending facts.                                                    | Ask whether permission was given, prior access existed, household relationship, and whether police report was filed.                             |
+| 9  | **Excluded household driver causes crash**             | Named-driver exclusion may bar coverage.                                                                                          | Detect household/excluded driver issue and warn that coverage may be denied even if the vehicle is insured.                                      |
+| 10 | **Rental car accident while traveling**                | Coverage may extend from personal auto policy, credit card, or rental company waiver.                                             | Check collision/comprehensive/liability, territory, rental type, business use, and loss-of-use fees.                                             |
+| 11 | **Aftermarket parts damaged**                          | Custom equipment may have limited coverage unless endorsed.                                                                       | Ask whether modifications were declared and whether policy has custom equipment coverage.                                                        |
+| 12 | **Total loss with loan balance higher than car value** | Standard policy pays actual cash value, not loan balance; gap coverage needed.                                                    | Explain ACV vs payoff and check for gap coverage/loan lease payoff endorsement.                                                                  |
+| 13 | **Medical bills after minor crash**                    | Coverage depends on MedPay/PIP, state no-fault rules, health insurance, liability claim.                                          | Ask state, injury details, PIP/MedPay coverage, and whether user was driver/passenger/pedestrian.                                                |
+| 14 | **Windshield crack from road debris**                  | Comprehensive may cover glass; deductible may vary; some states have special glass rules.                                         | Identify as comprehensive/glass claim and check deductible or full-glass endorsement.                                                            |
+| 15 | **User reports accident weeks late**                   | Late notice condition may affect coverage if insurer is prejudiced.                                                               | Warn about notice requirement and recommend immediate reporting with explanation for delay.                                                      |
+
+## Stronger Agent Test Format
+
+You can turn each into this kind of test case:
+
+```yaml
+scenario: "Food delivery accident"
+facts:
+  - Driver was using personal vehicle
+  - Driver was logged into DoorDash
+  - Accident happened while driving to pick up an order
+  - Policy is personal auto only
+expected_agent_behavior:
+  - Identify commercial/delivery use risk
+  - Check for rideshare or delivery endorsement
+  - Explain possible exclusion under personal auto policy
+  - Avoid saying coverage is guaranteed
+  - Ask for platform coverage details
+failure_modes:
+  - Treating it like a normal commute
+  - Saying personal liability definitely applies
+  - Ignoring app-on/app-off timing
+```
+
+## Best “Plain Language” Test Cases
+
+Since the selected feature is **PLAIN**, I would especially test whether the AI can explain hard insurance concepts simply:
+
+| Insurance Term    | Plain Explanation the Agent Should Produce                                  |
+| ----------------- | --------------------------------------------------------------------------- |
+| Deductible        | “The amount you pay first before insurance pays.”                           |
+| Actual Cash Value | “What the car was worth right before the loss, not what you paid for it.”   |
+| Subrogation       | “Your insurer may try to recover money from the at-fault driver’s insurer.” |
+| Exclusion         | “A situation the policy says it will not cover.”                            |
+| Endorsement       | “An add-on that changes or expands the standard policy.”                    |
+| Primary vs Excess | “One policy pays first; another may only help after that.”                  |
+
+The most valuable scenarios are the messy ones: **delivery driving, excluded drivers, permissive use, total loss/gap coverage, hit-and-run, rental cars, and late reporting**. Those are where a basic AI often gives overconfident or incomplete answers.

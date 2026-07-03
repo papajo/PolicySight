@@ -14,6 +14,7 @@ from src.core.policy_decoder import PolicyDecoder, ParsedPolicy
 from src.core.explainer import CoverageExplainer, CoverageExplanationSet, EvidenceAnswer
 from src.core.scenario import evaluate_scenario, ScenarioResult
 from src.core.decision import generate_decision, CoverageDecision
+from src.core.edge_cases import classify_edge_cases, EdgeCaseResult
 from src.core.audit import log_action
 from src.db.base import get_db
 
@@ -212,4 +213,28 @@ async def coverage_decision(input_data: DecisionRequest):
     parsed.coverage_gaps = PolicyDecoder.detect_coverage_gaps(parsed)
     result = generate_decision(parsed, input_data.claim)
     log_action("coverage_decision", "policy", f"Claim: {input_data.claim[:100]} → escalation: {result.escalation_level}, confidence: {result.overall_confidence}")
+    return result
+
+
+class EdgeCaseRequest(BaseModel):
+    """Request model for edge case classification."""
+    text: str
+    scenario: str
+
+
+@router.post("/edge-cases", response_model=EdgeCaseResult)
+async def check_edge_cases(input_data: EdgeCaseRequest):
+    """
+    Classify a scenario for edge cases: rideshare, excluded drivers,
+    borrowed vehicles, hit-and-run, late reporting, etc. (PDF REQ-010)
+    """
+    if not input_data.text or len(input_data.text.strip()) < 20:
+        raise HTTPException(status_code=400, detail="Please provide at least 20 characters of policy text.")
+    if not input_data.scenario or len(input_data.scenario.strip()) < 3:
+        raise HTTPException(status_code=400, detail="Please describe the scenario.")
+
+    parsed = PolicyDecoder.parse_policy_text(input_data.text)
+    parsed.coverage_gaps = PolicyDecoder.detect_coverage_gaps(parsed)
+    result = classify_edge_cases(parsed, input_data.scenario)
+    log_action("edge_case_check", "policy", f"Scenario: {input_data.scenario[:100]} → {len([f for f in result.flags if f.applies])} flags, primary: {result.primary_concern}")
     return result

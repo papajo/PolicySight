@@ -27,6 +27,7 @@ import ScenarioChecker from "./pages/ScenarioChecker";
 import ClaimIntakeForm from "./pages/ClaimIntake";
 import DecisionDraft from "./pages/DecisionDraft";
 import AuditTrail from "./pages/AuditTrail";
+import EdgeCaseClassifier from "./pages/EdgeCaseClassifier";
 
 const App: React.FC = () => {
   const navigate = useNavigate();
@@ -103,6 +104,9 @@ const App: React.FC = () => {
               <Button color="inherit" component={Link} to="/audit">
                 Audit
               </Button>
+              <Button color="inherit" component={Link} to="/edge-cases">
+                Edge Cases
+              </Button>
             </Box>
           )}
 
@@ -170,6 +174,10 @@ const App: React.FC = () => {
           <Route
             path="/audit"
             element={isAuthenticated ? <AuditTrail /> : <Login />}
+          />
+          <Route
+            path="/edge-cases"
+            element={isAuthenticated ? <EdgeCaseClassifier standalone /> : <Login />}
           />
         </Routes>
       </Container>
