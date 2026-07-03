@@ -415,6 +415,30 @@ class PolicyDecoder:
                 potential_consequence=info["consequence"],
             ))
 
+        if not parsed.roadside_assistance:
+            info = PolicyDecoder.GAP_DESCRIPTIONS.get("missing_roadside", {
+                "why_it_matters": "Roadside assistance provides towing, flat tire, lockout, and battery jump services.",
+                "consequence": "Without roadside, a single tow could cost $100-$250 out of pocket in an emergency.",
+            })
+            gaps.append(CoverageGap(
+                field="roadside_assistance",
+                detail="No roadside assistance coverage detected.",
+                why_it_matters=info.get("why_it_matters", ""),
+                potential_consequence=info.get("consequence", ""),
+            ))
+
+        if not parsed.loan_lease_payoff:
+            info = PolicyDecoder.GAP_DESCRIPTIONS.get("missing_gap", {
+                "why_it_matters": "Gap/loan-lease coverage pays the difference between ACV and loan balance after a total loss.",
+                "consequence": "Without gap coverage, you could owe thousands if your car is totaled and you owe more than it's worth.",
+            })
+            gaps.append(CoverageGap(
+                field="loan_lease_payoff",
+                detail="No loan/lease payoff (gap) coverage detected.",
+                why_it_matters=info.get("why_it_matters", ""),
+                potential_consequence=info.get("consequence", ""),
+            ))
+
         if parsed.collision_deductible:
             try:
                 val = int(parsed.collision_deductible.replace("$", "").replace(",", ""))
@@ -428,6 +452,42 @@ class PolicyDecoder:
                     ))
             except (ValueError, AttributeError):
                 pass
+
+        if parsed.collision_deductible and parsed.comprehensive_deductible:
+            try:
+                col = int(parsed.collision_deductible.replace("$", "").replace(",", ""))
+                comp = int(parsed.comprehensive_deductible.replace("$", "").replace(",", ""))
+                if col >= comp * 2:
+                    gaps.append(CoverageGap(
+                        field="deductible_mismatch",
+                        detail=f"Collision deductible (${col:,}) is much higher than comprehensive (${comp:,}).",
+                        why_it_matters="A large gap between deductibles can create confusion about which coverage applies.",
+                        potential_consequence="Filing under the wrong coverage could mean paying a higher deductible than necessary.",
+                    ))
+            except (ValueError, AttributeError):
+                pass
+
+        if parsed.liability_limit:
+            try:
+                parts = parsed.liability_limit.replace("$", "").replace(",", "").split("/")
+                per_person = float(parts[0].strip())
+                if per_person < 50000:
+                    gaps.append(CoverageGap(
+                        field="liability_limit",
+                        detail=f"Liability limit of ${per_person:,.0f} per person is below recommended $100,000.",
+                        why_it_matters="Low liability limits leave personal assets at risk in a serious accident.",
+                        potential_consequence="You could be personally sued for amounts above your policy limits.",
+                    ))
+            except (ValueError, IndexError, AttributeError):
+                pass
+
+        if not parsed.exclusions or len(parsed.exclusions) <= 1:
+            gaps.append(CoverageGap(
+                field="exclusions",
+                detail="Few or no exclusions detected in the policy text.",
+                why_it_matters="Policies always have exclusions — missing exclusions may indicate incomplete document parsing.",
+                potential_consequence="Critical coverage limitations may be overlooked during claim evaluation.",
+            ))
 
         return gaps
 
