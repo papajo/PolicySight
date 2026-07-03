@@ -23,6 +23,8 @@ logger = logging.getLogger("policysight")
 
 settings = get_settings()
 
+from src.db.seed import seed_demo_user
+
 app = FastAPI(
     title=settings.app_name,
     description="Your Policy, Decoded. Your Claim, Defended.",
@@ -40,6 +42,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+async def on_startup():
+    """Ensure demo user exists on startup."""
+    seed_demo_user()
 
 
 @app.get("/health")

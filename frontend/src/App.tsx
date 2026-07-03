@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Routes, Route, Link, useNavigate } from "react-router-dom";
+import { Routes, Route, Link, useNavigate, useLocation } from "react-router-dom";
 import {
   AppBar,
   Toolbar,
@@ -24,18 +24,16 @@ import Home from "./pages/Home";
 
 const App: React.FC = () => {
   const navigate = useNavigate();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const location = useLocation();
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("auth_token"));
+  const [userEmail, setUserEmail] = useState<string | null>(localStorage.getItem("user_email"));
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("auth_token");
-    const email = localStorage.getItem("user_email");
-    if (token) {
-      setIsAuthenticated(true);
-      setUserEmail(email);
-    }
-  }, []);
+    setIsAuthenticated(!!token);
+    setUserEmail(localStorage.getItem("user_email"));
+  }, [location.pathname]);
 
   const handleLogout = () => {
     localStorage.removeItem("auth_token");

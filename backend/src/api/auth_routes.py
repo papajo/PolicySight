@@ -4,7 +4,7 @@ Handles user registration, login, and token refresh.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from src.db.base import get_db
@@ -20,13 +20,13 @@ router = APIRouter()
 
 
 class RegisterRequest(BaseModel):
-    email: EmailStr
+    email: str
     password: str
     role: str = "user"
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str
     password: str
 
 

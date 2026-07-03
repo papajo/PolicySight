@@ -39,6 +39,8 @@ const Trajectory: React.FC = () => {
   const [result, setResult] = useState<ForecastResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const userId = parseInt(localStorage.getItem("user_id") || "0", 10);
+
   const handleForecast = async () => {
     if (!currentRate) return;
 
@@ -48,7 +50,7 @@ const Trajectory: React.FC = () => {
     try {
       const response = await api.get("/rates/forecast", {
         params: {
-          user_id: 1, // Placeholder — will be replaced with auth
+          user_id: userId,
           current_rate: parseFloat(currentRate),
         },
       });

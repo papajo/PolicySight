@@ -27,6 +27,7 @@ class RateTrajectory:
     # Average annual rate adjustments by state (placeholder data)
     MARKET_ADJUSTMENT_FACTOR = 1.08  # 8% average annual increase
     SWITCH_SAVINGS_THRESHOLD = 0.10  # 10% savings triggers "Switch" recommendation
+    DEFAULT_MARKET_AVERAGE = 120.0  # Assumed market average when no peer data available
 
     @staticmethod
     def calculate_forecast(
@@ -54,7 +55,7 @@ class RateTrajectory:
         forecast *= loyalty_penalty
 
         # Determine recommendation
-        peer_avg = peer_avg_rate if peer_avg_rate > 0 else current_rate * 0.95
+        peer_avg = peer_avg_rate if peer_avg_rate > 0 else RateTrajectory.DEFAULT_MARKET_AVERAGE
         savings = current_rate - peer_avg
         savings_pct = savings / current_rate if current_rate > 0 else 0
 
