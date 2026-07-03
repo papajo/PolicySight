@@ -28,6 +28,7 @@ import ClaimIntakeForm from "./pages/ClaimIntake";
 import DecisionDraft from "./pages/DecisionDraft";
 import AuditTrail from "./pages/AuditTrail";
 import EdgeCaseClassifier from "./pages/EdgeCaseClassifier";
+import CostEstimator from "./pages/CostEstimator";
 
 const App: React.FC = () => {
   const navigate = useNavigate();
@@ -107,6 +108,9 @@ const App: React.FC = () => {
               <Button color="inherit" component={Link} to="/edge-cases">
                 Edge Cases
               </Button>
+              <Button color="inherit" component={Link} to="/cost-estimator">
+                Cost Estimator
+              </Button>
             </Box>
           )}
 
@@ -178,6 +182,10 @@ const App: React.FC = () => {
           <Route
             path="/edge-cases"
             element={isAuthenticated ? <EdgeCaseClassifier standalone /> : <Login />}
+          />
+          <Route
+            path="/cost-estimator"
+            element={isAuthenticated ? <CostEstimator standalone /> : <Login />}
           />
         </Routes>
       </Container>

@@ -15,6 +15,7 @@ from src.core.explainer import CoverageExplainer, CoverageExplanationSet, Eviden
 from src.core.scenario import evaluate_scenario, ScenarioResult
 from src.core.decision import generate_decision, CoverageDecision
 from src.core.edge_cases import classify_edge_cases, EdgeCaseResult
+from src.core.cost_estimator import estimate_costs, CostEstimate
 from src.core.audit import log_action
 from src.db.base import get_db
 
@@ -237,4 +238,35 @@ async def check_edge_cases(input_data: EdgeCaseRequest):
     parsed.coverage_gaps = PolicyDecoder.detect_coverage_gaps(parsed)
     result = classify_edge_cases(parsed, input_data.scenario)
     log_action("edge_case_check", "policy", f"Scenario: {input_data.scenario[:100]} → {len([f for f in result.flags if f.applies])} flags, primary: {result.primary_concern}")
+    return result
+
+
+class EstimateRequest(BaseModel):
+    text: str
+    damage_estimate: float = 5000.0
+    has_injuries: bool = False
+    needs_rental_days: int = 14
+    collision_applies: bool = True
+    comprehensive_applies: bool = False
+
+
+@router.post("/estimate-costs", response_model=CostEstimate)
+async def estimate_out_of_pocket(input_data: EstimateRequest):
+    """
+    Estimate out-of-pocket costs for a claim based on policy limits,
+    deductibles, and rental coverage. (PDF REQ-008)
+    """
+    if not input_data.text or len(input_data.text.strip()) < 20:
+        raise HTTPException(status_code=400, detail="Please provide at least 20 characters of policy text.")
+
+    parsed = PolicyDecoder.parse_policy_text(input_data.text)
+    result = estimate_costs(
+        parsed,
+        damage_estimate=input_data.damage_estimate,
+        has_injuries=input_data.has_injuries,
+        needs_rental_days=input_data.needs_rental_days,
+        collision_applies=input_data.collision_applies,
+        comprehensive_applies=input_data.comprehensive_applies,
+    )
+    log_action("cost_estimate", "policy", f"Damage est: ${input_data.damage_estimate:,.0f} → OOP: ${result.total_out_of_pocket:,.0f}")
     return result
