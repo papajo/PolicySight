@@ -24,6 +24,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import WarningIcon from "@mui/icons-material/Warning";
 import ErrorIcon from "@mui/icons-material/Error";
 import ArticleIcon from "@mui/icons-material/Article";
+import CoverageExplainerPanel from "./CoverageExplainerPanel";
 import api from "../services/api";
 
 interface CoverageGap {
@@ -271,6 +272,10 @@ const PolicyDecoder: React.FC = () => {
               ))}
             </SectionCard>
           )}
+
+          <Divider sx={{ my: 3 }} />
+          <Typography variant="h6" gutterBottom>Coverage Analysis</Typography>
+          <CoverageExplainerPanel policyText={result.raw_text} />
 
           {result.raw_text && (
             <SectionCard title="Source Text">

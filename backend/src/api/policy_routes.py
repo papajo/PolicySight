@@ -1,6 +1,6 @@
 """
 Policy Decoder API Routes
-Handles SLIP document upload, paste, and parsing.
+Handles SLIP document upload, paste, parsing, explanation, and evidence queries.
 """
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
@@ -11,6 +11,7 @@ from src.ai.client import LLMService
 from src.ai.ocr import OCRService
 from src.config.settings import get_settings
 from src.core.policy_decoder import PolicyDecoder, ParsedPolicy
+from src.core.explainer import CoverageExplainer, CoverageExplanationSet, EvidenceAnswer
 from src.db.base import get_db
 
 router = APIRouter()
@@ -22,6 +23,17 @@ ALLOWED_EXTENSIONS = (".pdf", ".png", ".jpg", ".jpeg")
 class PolicyTextInput(BaseModel):
     """Request model for pasting policy text directly."""
     text: str
+
+
+class ExplainRequest(BaseModel):
+    """Request model for coverage explanation."""
+    text: str
+
+
+class AskRequest(BaseModel):
+    """Request model for asking a question about a policy."""
+    text: str
+    question: str
 
 
 @router.post("/decode", response_model=ParsedPolicy)
@@ -111,3 +123,34 @@ async def save_policy_snapshot(
     db.commit()
     db.refresh(snapshot)
     return {"id": snapshot.id, "status": "saved"}
+
+
+@router.post("/explain", response_model=CoverageExplanationSet)
+async def explain_coverage(input_data: ExplainRequest):
+    """
+    Generate per-coverage-type plain-English explanations
+    with source citations and confidence levels. (REQ-003)
+    """
+    if not input_data.text or len(input_data.text.strip()) < 20:
+        raise HTTPException(status_code=400, detail="Please provide at least 20 characters of policy text.")
+
+    parsed = PolicyDecoder.parse_policy_text(input_data.text)
+    parsed.coverage_gaps = PolicyDecoder.detect_coverage_gaps(parsed)
+    parsed.plain_english_summary = PolicyDecoder.generate_plain_english_summary(parsed)
+    return CoverageExplainer.explain(parsed)
+
+
+@router.post("/ask", response_model=EvidenceAnswer)
+async def ask_policy_question(input_data: AskRequest):
+    """
+    Answer a natural-language question about a policy
+    using only extracted data and known coverage rules. (REQ-002)
+    """
+    if not input_data.text or len(input_data.text.strip()) < 20:
+        raise HTTPException(status_code=400, detail="Please provide at least 20 characters of policy text.")
+    if not input_data.question or len(input_data.question.strip()) < 3:
+        raise HTTPException(status_code=400, detail="Please provide a question about the policy.")
+
+    parsed = PolicyDecoder.parse_policy_text(input_data.text)
+    parsed.coverage_gaps = PolicyDecoder.detect_coverage_gaps(parsed)
+    return CoverageExplainer.answer_question(parsed, input_data.question)
