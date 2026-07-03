@@ -36,7 +36,9 @@ async def health_check():
 from src.api.policy_routes import router as policy_router
 from src.api.claims_routes import router as claims_router
 from src.api.rate_routes import router as rate_router
+from src.api.lapse_routes import router as lapse_router
 
 app.include_router(policy_router, prefix="/api/policies", tags=["Policies"])
 app.include_router(claims_router, prefix="/api/claims", tags=["Claims"])
 app.include_router(rate_router, prefix="/api/rates", tags=["Rates"])
+app.include_router(lapse_router, prefix="/api/lapse", tags=["Lapse Bridge"])
