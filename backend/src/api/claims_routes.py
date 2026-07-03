@@ -1,16 +1,40 @@
 """
 Claims Advocate API Routes
-Handles claim submission and sub-limit valuation.
+Handles claim submission, sub-limit valuation, and structured intake.
 """
 
 from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from src.db.base import get_db
 from src.ai.client import LLMService, ClaimValuation
 from src.config.settings import get_settings
+from src.core.claims import get_intake_steps, submit_intake, get_intakes, ClaimIntake
 
 router = APIRouter()
+
+
+@router.get("/intake/steps")
+async def list_intake_steps():
+    """Get the guided claim intake steps. (REQ-007)"""
+    return get_intake_steps()
+
+
+class IntakeSubmitRequest(BaseModel):
+    responses: dict[str, str]
+
+
+@router.post("/intake/submit", response_model=ClaimIntake)
+async def submit_claim_intake(input_data: IntakeSubmitRequest):
+    """Submit a completed claim intake form. (REQ-007)"""
+    return submit_intake(input_data.responses)
+
+
+@router.get("/intake/list")
+async def list_intakes():
+    """List submitted claim intakes."""
+    return get_intakes()
 
 
 @router.post("/advocate", response_model=ClaimValuation)
