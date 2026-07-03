@@ -27,7 +27,7 @@ async def register_bridge(
     """
     from src.db.models import Policy
 
-    # Check if user has an active policy
+    # Check if user has an active policy in the DB
     active_policy = (
         db.query(Policy)
         .filter(Policy.user_id == user_id, Policy.status == "active")
@@ -45,20 +45,26 @@ async def register_bridge(
             )
 
     bridge = CoverageGapBridge()
+    has_coverage = bool(active_policy) or bool(current_carrier)
     status = bridge.check_coverage_status(
         renewal_date=renewal_dt,
-        has_active_policy=active_policy is not None,
+        has_active_policy=has_coverage,
+        carrier=current_carrier if not active_policy else None,
     )
 
     should_trigger = bridge.should_trigger_bridge(status)
-    bridge_cost = bridge.calculate_bridge_cost()
+    product = bridge.select_product(
+        has_active_policy=has_coverage,
+        carrier=current_carrier or (active_policy.carrier_id if active_policy else None),
+        renewal_date=renewal_dt,
+    )
     alert = bridge.generate_lapse_alert(status)
 
     return {
         "registered": True,
         "coverage_status": status.model_dump(),
         "bridge_triggered": should_trigger,
-        "bridge_cost": bridge_cost,
+        "bridge_product": product.model_dump(),
         "alert": alert,
         "message": "You are now protected by the Lapse Bridge. We'll monitor your renewal window.",
     }
@@ -67,6 +73,8 @@ async def register_bridge(
 @router.get("/status/{user_id}")
 async def get_bridge_status(
     user_id: int,
+    current_carrier: str | None = None,
+    renewal_date: str | None = None,
     db: Session = Depends(get_db),
 ):
     """Check your current bridge protection status."""
@@ -78,18 +86,36 @@ async def get_bridge_status(
         .first()
     )
 
+    renewal_dt = None
+    if renewal_date:
+        try:
+            renewal_dt = datetime.fromisoformat(renewal_date)
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid date format. Use ISO format (e.g., 2024-12-31).",
+            )
+
+    has_coverage = bool(active_policy) or bool(current_carrier)
     bridge = CoverageGapBridge()
     status = bridge.check_coverage_status(
-        renewal_date=None,
-        has_active_policy=active_policy is not None,
+        renewal_date=renewal_dt,
+        has_active_policy=has_coverage,
+        carrier=current_carrier if not active_policy else None,
     )
 
     should_trigger = bridge.should_trigger_bridge(status)
+    product = bridge.select_product(
+        has_active_policy=has_coverage,
+        carrier=current_carrier or (active_policy.carrier_id if active_policy else None),
+        renewal_date=renewal_dt,
+    )
     alert = bridge.generate_lapse_alert(status)
 
     return {
         "user_id": user_id,
         "coverage_status": status.model_dump(),
         "bridge_needed": should_trigger,
+        "bridge_product": product.model_dump(),
         "alert": alert,
     }

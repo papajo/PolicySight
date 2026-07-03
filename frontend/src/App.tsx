@@ -21,6 +21,7 @@ import ClaimsAdvocate from "./pages/ClaimsAdvocate";
 import Trajectory from "./pages/Trajectory";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
+import LapseBridge from "./pages/LapseBridge";
 
 const App: React.FC = () => {
   const navigate = useNavigate();
@@ -79,6 +80,9 @@ const App: React.FC = () => {
               <Button color="inherit" component={Link} to="/trajectory">
                 Forecast
               </Button>
+              <Button color="inherit" component={Link} to="/lapse">
+                Lapse Bridge
+              </Button>
             </Box>
           )}
 
@@ -122,6 +126,10 @@ const App: React.FC = () => {
           <Route
             path="/trajectory"
             element={isAuthenticated ? <Trajectory /> : <Login />}
+          />
+          <Route
+            path="/lapse"
+            element={isAuthenticated ? <LapseBridge /> : <Login />}
           />
         </Routes>
       </Container>

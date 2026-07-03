@@ -49,9 +49,9 @@ const modules = [
     icon: <ShieldIcon sx={{ fontSize: 48 }} />,
     description:
       "Never let your coverage lapse. We monitor your renewal window and automatically bridge the gap if needed.",
-    path: "/decoder",
+    path: "/lapse",
     color: "error.main",
-    chip: "Coming Soon",
+    chip: "Free",
   },
 ];
 
@@ -101,10 +101,12 @@ const Home: React.FC = () => {
         {modules.map((mod) => (
           <Grid item xs={12} sm={6} key={mod.title}>
             <Card
+              onClick={() => navigate(mod.path)}
               sx={{
                 height: "100%",
                 display: "flex",
                 flexDirection: "column",
+                cursor: "pointer",
                 transition: "transform 0.2s, box-shadow 0.2s",
                 "&:hover": {
                   transform: "translateY(-4px)",
@@ -125,7 +127,7 @@ const Home: React.FC = () => {
                 </Typography>
               </CardContent>
               <CardActions>
-                <Button size="small" onClick={() => navigate(mod.path)}>
+                <Button size="small" onClick={(e) => { e.stopPropagation(); navigate(mod.path); }}>
                   Get Started
                 </Button>
               </CardActions>
