@@ -1,32 +1,91 @@
 """
 Policy Decoder Service
-Handles SLIP document parsing and validation logic.
+Handles SLIP document parsing, structured extraction, and coverage analysis.
+Each extracted field links back to source text. Missing/unclear fields are flagged.
 """
 
 from __future__ import annotations
 
 import re
 from typing import Optional
+from datetime import datetime
 
 from pydantic import BaseModel
 
 
-class ParsedPolicy(BaseModel):
-    """Structured representation of a parsed insurance policy."""
+class SourceCitation(BaseModel):
+    """Links an extracted value to its original policy text."""
+    value: Optional[str] = None
+    source_text: Optional[str] = None
+    confidence: str = "missing"  # high, medium, low, missing
 
+
+class CoverageGap(BaseModel):
+    """A detected coverage gap with explanation."""
+    field: str
+    detail: str
+    why_it_matters: str
+    potential_consequence: str
+
+
+class ParsedPolicy(BaseModel):
+    # Liability
     liability_limit: Optional[str] = None
+    liability_source: Optional[str] = None
+    liability_confidence: str = "missing"
+
+    # Medical payments
     medical_limit: Optional[str] = None
+    medical_source: Optional[str] = None
+    medical_confidence: str = "missing"
+
+    # Property damage
     property_limit: Optional[str] = None
+    property_source: Optional[str] = None
+    property_confidence: str = "missing"
+
+    # Uninsured / underinsured motorist
     uninsured_motorist_limit: Optional[str] = None
-    deductible: Optional[str] = None
-    coverage_gaps: list[str] = []
+    uninsured_motorist_source: Optional[str] = None
+    uninsured_motorist_confidence: str = "missing"
+
+    # Deductibles (collision vs comprehensive)
+    collision_deductible: Optional[str] = None
+    collision_deductible_source: Optional[str] = None
+    comprehensive_deductible: Optional[str] = None
+    comprehensive_deductible_source: Optional[str] = None
+
+    # Additional coverages
+    rental_reimbursement: Optional[str] = None
+    rental_reimbursement_source: Optional[str] = None
+    roadside_assistance: Optional[str] = None
+    roadside_assistance_source: Optional[str] = None
+    loan_lease_payoff: Optional[str] = None
+    loan_lease_payoff_source: Optional[str] = None
+
+    # Policy metadata
+    policy_number: Optional[str] = None
+    named_insured: Optional[str] = None
+    effective_date: Optional[str] = None
+    expiration_date: Optional[str] = None
+    vehicle_year_make_model: Optional[str] = None
+
+    # Exclusions and endorsements
+    exclusions: list[str] = []
+    endorsements: list[str] = []
+
+    # Analysis
+    coverage_gaps: list[CoverageGap] = []
+    missing_fields: list[str] = []
+    unclear_fields: list[str] = []
     plain_english_summary: str = ""
+    raw_text: str = ""
 
 
 class PolicyDecoder:
     """
-    Core service for decoding SLIP documents.
-    Uses deterministic extraction first and optional guarded enrichment later.
+    Core service for decoding insurance policy documents.
+    Uses deterministic regex extraction with source-text tracking.
     """
 
     NATIONAL_AVERAGES = {
@@ -34,9 +93,11 @@ class PolicyDecoder:
         "medical": "$50,000",
         "property": "$25,000",
         "uninsured_motorist": "$100,000",
+        "rental": "$30/day $900 max",
     }
 
     MONEY_RE = re.compile(r"\$\s?\d{1,3}(?:,\d{3})*(?:\.\d{2})?|\$\s?\d+(?:\.\d{2})?")
+    DATE_RE = re.compile(r"(\d{2}/\d{2}/\d{4})|(\d{4}-\d{2}-\d{2})")
     COMBINED_LIMIT_RE = re.compile(
         r"(\$\s?\d{1,3}(?:,\d{3})*(?:\.\d{2})?|\$\s?\d+(?:\.\d{2})?)"
         r"(?:\s*(?:each\s+person|per\s+person))?\s*/\s*"
@@ -45,20 +106,57 @@ class PolicyDecoder:
         r"(?:\s*/\s*(\$\s?\d{1,3}(?:,\d{3})*(?:\.\d{2})?|\$\s?\d+(?:\.\d{2})?))?",
         re.IGNORECASE,
     )
+    POLICY_NUMBER_RE = re.compile(r"(?:policy\s*(?:#|no|number|num)[:\s]*)\s*([A-Z0-9\-/]{5,30})", re.IGNORECASE)
+    EFFECTIVE_RE = re.compile(r"(?:effective|from|period)[:\s]*(\d{2}/\d{2}/\d{4})", re.IGNORECASE)
+    EXPIRATION_RE = re.compile(r"(?:expir|to|through|until)[:\s]*(\d{2}/\d{2}/\d{4})", re.IGNORECASE)
 
     OCR_KEYWORD_NORMALIZATIONS = {
-        "L1MIT": "LIMIT",
-        "L1M1T": "LIMIT",
-        "L1AB1LITY": "LIABILITY",
-        "LIAB1LITY": "LIABILITY",
-        "LNJURY": "INJURY",
-        "M0TORIST": "MOTORIST",
-        "PR0PERTY": "PROPERTY",
-        "C0LLISION": "COLLISION",
-        "DEDUCT1BLE": "DEDUCTIBLE",
-        "DEDUCTIB1E": "DEDUCTIBLE",
+        "L1MIT": "LIMIT", "L1M1T": "LIMIT",
+        "L1AB1LITY": "LIABILITY", "LIAB1LITY": "LIABILITY",
+        "LNJURY": "INJURY", "M0TORIST": "MOTORIST",
+        "PR0PERTY": "PROPERTY", "C0LLISION": "COLLISION",
+        "DEDUCT1BLE": "DEDUCTIBLE", "DEDUCTIB1E": "DEDUCTIBLE",
         "C0MPREHENSIVE": "COMPREHENSIVE",
         "B.L.": "BODILY INJURY",
+        "RENTAL REIMBURSEMENT": "RENTAL",
+        "R0ADSIDE": "ROADSIDE",
+        "LOAN/LEASE": "LOAN LEASE",
+    }
+
+    EXCLUSION_KEYWORDS = [
+        "EXCLUSION", "THIS POLICY DOES NOT COVER", "NOT COVERED",
+        "EXCLUDED", "WE WILL NOT PAY", "NO COVERAGE",
+    ]
+    ENDORSEMENT_KEYWORDS = [
+        "ENDORSEMENT", "AMENDATORY", "THIS ENDORSEMENT CHANGES",
+        "SCHEDULED PERSONAL PROPERTY",
+    ]
+
+    GAP_DESCRIPTIONS = {
+        "low_liability": {
+            "why_it_matters": "Low liability limits leave your assets at risk if you cause a serious accident.",
+            "consequence": "You could be personally sued for damages exceeding your limit.",
+        },
+        "missing_um": {
+            "why_it_matters": "Without UM/UIM, you have no coverage if an uninsured driver hits you.",
+            "consequence": "You pay out-of-pocket for injuries and damages caused by an uninsured motorist.",
+        },
+        "missing_rental": {
+            "why_it_matters": "Without rental reimbursement, you pay for a replacement car out-of-pocket while yours is being repaired.",
+            "consequence": "Could cost $30-50/day for weeks during repairs.",
+        },
+        "high_deductible": {
+            "why_it_matters": "A high deductible means more out-of-pocket cost before insurance kicks in.",
+            "consequence": "A $2,000 deductible on a $5,000 claim leaves you paying 40%.",
+        },
+        "low_property": {
+            "why_it_matters": "Low property damage limits may not cover the full cost of a vehicle you damage.",
+            "consequence": "You could be personally liable for the difference if you cause a multi-vehicle accident.",
+        },
+        "missing_medical": {
+            "why_it_matters": "Without medical payments coverage, your health insurance and out-of-pocket costs cover accident injuries.",
+            "consequence": "Could lead to significant medical bills not covered by health plans.",
+        },
     }
 
     @classmethod
@@ -77,48 +175,303 @@ class PolicyDecoder:
     @classmethod
     def parse_policy_text(cls, raw_text: str) -> ParsedPolicy:
         normalized = cls.normalize_text(raw_text)
-        parsed = ParsedPolicy(
-            liability_limit=cls._extract_liability_limit(normalized),
-            medical_limit=cls._extract_single_limit(normalized, ["MEDICAL PAYMENTS", "MEDICAL LIMIT", "MED PAY"]),
-            property_limit=cls._extract_single_limit(normalized, ["PROPERTY DAMAGE LIABILITY", "PROPERTY DAMAGE", "PROPERTY LIMIT"]),
-            uninsured_motorist_limit=cls._extract_uninsured_motorist_limit(normalized),
-            deductible=cls._extract_deductible(normalized),
-        )
+        lines = normalized.splitlines()
+
+        parsed = ParsedPolicy(raw_text=raw_text)
+
+        # Liability
+        liab_val, liab_src, liab_conf = cls._extract_liability(normalized, lines)
+        parsed.liability_limit = liab_val
+        parsed.liability_source = liab_src
+        parsed.liability_confidence = liab_conf
+
+        # Medical
+        med_val, med_src, med_conf = cls._extract_field(normalized, lines, ["MEDICAL PAYMENTS", "MEDICAL LIMIT", "MED PAY", "PIP"])
+        parsed.medical_limit = med_val
+        parsed.medical_source = med_src
+        parsed.medical_confidence = med_conf
+
+        # Property damage
+        prop_val, prop_src, prop_conf = cls._extract_field(normalized, lines, ["PROPERTY DAMAGE LIABILITY", "PROPERTY DAMAGE", "PROPERTY LIMIT"])
+        parsed.property_limit = prop_val
+        parsed.property_source = prop_src
+        parsed.property_confidence = prop_conf
+
+        # UM/UIM
+        um_val, um_src, um_conf = cls._extract_uninsured(normalized, lines)
+        parsed.uninsured_motorist_limit = um_val
+        parsed.uninsured_motorist_source = um_src
+        parsed.uninsured_motorist_confidence = um_conf
+
+        # Deductibles (collision vs comprehensive)
+        coll_val, coll_src = cls._extract_deductible(lines, "COLLISION")
+        parsed.collision_deductible = coll_val
+        parsed.collision_deductible_source = coll_src
+        comp_val, comp_src = cls._extract_deductible(lines, "COMPREHENSIVE")
+        parsed.comprehensive_deductible = comp_val
+        parsed.comprehensive_deductible_source = comp_src
+        if not parsed.collision_deductible:
+            gen_val, gen_src = cls._extract_generic_deductible(lines)
+            parsed.collision_deductible = gen_val
+            parsed.collision_deductible_source = gen_src
+
+        # Additional coverages
+        rent_val, rent_src, _ = cls._extract_field(normalized, lines, ["RENTAL", "RENTAL REIMBURSEMENT", "TRANSPORTATION EXPENSE"])
+        parsed.rental_reimbursement = rent_val
+        parsed.rental_reimbursement_source = rent_src
+        road_val, road_src, _ = cls._extract_field(normalized, lines, ["ROADSIDE", "TOWING", "EMERGENCY ROAD"])
+        parsed.roadside_assistance = road_val
+        parsed.roadside_assistance_source = road_src
+        loan_val, loan_src, _ = cls._extract_field(normalized, lines, ["LOAN/LEASE", "GAP", "LOAN LEASE"])
+        parsed.loan_lease_payoff = loan_val
+        parsed.loan_lease_payoff_source = loan_src
+
+        # Policy metadata
+        parsed.policy_number = cls._extract_policy_number(lines)
+        parsed.effective_date, parsed.expiration_date = cls._extract_dates(lines)
+
+        # Exclusions and endorsements
+        parsed.exclusions = cls._extract_sections(normalized, cls.EXCLUSION_KEYWORDS)
+        parsed.endorsements = cls._extract_sections(normalized, cls.ENDORSEMENT_KEYWORDS)
+
+        # Missing field flags
+        parsed.missing_fields = cls._find_missing_fields(parsed)
+        parsed.unclear_fields = cls._find_unclear_fields(parsed)
+
+        # Coverage gaps
         parsed.coverage_gaps = cls.detect_coverage_gaps(parsed)
+
+        # Summary
         parsed.plain_english_summary = cls.generate_plain_english_summary(parsed)
+
         return parsed
 
+    @classmethod
+    def _extract_liability(cls, text: str, lines: list[str]) -> tuple[Optional[str], Optional[str], str]:
+        for line in lines:
+            if "LIABILITY" in line and "PROPERTY" not in line:
+                match = cls.COMBINED_LIMIT_RE.search(line)
+                if match:
+                    return cls._normalize_money_expression(match.groups()), line, "high"
+        if "LIABILITY" in text:
+            match = cls.COMBINED_LIMIT_RE.search(text)
+            if match:
+                return cls._normalize_money_expression(match.groups()), text[:200], "medium"
+        return None, None, "missing"
+
+    @classmethod
+    def _extract_uninsured(cls, text: str, lines: list[str]) -> tuple[Optional[str], Optional[str], str]:
+        for line in lines:
+            if "UNINSURED" in line or "UNDERINSURED" in line:
+                match = cls.COMBINED_LIMIT_RE.search(line)
+                if match:
+                    return cls._normalize_money_expression(match.groups()), line, "high"
+                single = cls.MONEY_RE.search(line)
+                if single:
+                    return cls._normalize_money(single.group(0)), line, "medium"
+        if "UNINSURED" in text or "UNDERINSURED" in text:
+            match = cls.COMBINED_LIMIT_RE.search(text)
+            if match:
+                return cls._normalize_money_expression(match.groups()), text[:200], "low"
+        return None, None, "missing"
+
+    @classmethod
+    def _extract_field(cls, text: str, lines: list[str], keywords: list[str]) -> tuple[Optional[str], Optional[str], str]:
+        for line in lines:
+            if any(k in line for k in keywords):
+                match = cls.MONEY_RE.search(line)
+                if match:
+                    return cls._normalize_money(match.group(0)), line, "high"
+        for line in lines:
+            if any(k in line for k in keywords):
+                return None, line, "low"
+        return None, None, "missing"
+
+    @classmethod
+    def _extract_deductible(cls, lines: list[str], coverage_type: str) -> tuple[Optional[str], Optional[str]]:
+        for line in lines:
+            if coverage_type in line and "DEDUCT" in line:
+                match = cls.MONEY_RE.search(line)
+                if match:
+                    return cls._normalize_money(match.group(0)), line
+        return None, None
+
+    @classmethod
+    def _extract_generic_deductible(cls, lines: list[str]) -> tuple[Optional[str], Optional[str]]:
+        values: list[tuple[int, str, str]] = []
+        for line in lines:
+            if "DEDUCT" in line:
+                for match in cls.MONEY_RE.findall(line):
+                    try:
+                        val = int(match.replace("$", "").replace(",", "").replace(" ", ""))
+                        values.append((val, line, match))
+                    except ValueError:
+                        continue
+        if values:
+            best = min(values, key=lambda x: x[0])
+            return cls._normalize_money(best[2]), best[1]
+        return None, None
+
+    @classmethod
+    def _extract_policy_number(cls, lines: list[str]) -> Optional[str]:
+        for line in lines:
+            match = cls.POLICY_NUMBER_RE.search(line)
+            if match:
+                return match.group(1)
+        return None
+
+    @classmethod
+    def _extract_dates(cls, lines: list[str]) -> tuple[Optional[str], Optional[str]]:
+        eff, exp = None, None
+        for line in lines:
+            if not eff:
+                m = cls.EFFECTIVE_RE.search(line)
+                if m:
+                    eff = m.group(1)
+            if not exp:
+                m = cls.EXPIRATION_RE.search(line)
+                if m:
+                    exp = m.group(1)
+        return eff, exp
+
+    @classmethod
+    def _extract_sections(cls, text: str, keywords: list[str]) -> list[str]:
+        found: list[str] = []
+        for line in text.splitlines():
+            if any(k in line for k in keywords):
+                found.append(line.strip())
+        return found[:10]
+
+    @classmethod
+    def _find_missing_fields(cls, parsed: ParsedPolicy) -> list[str]:
+        missing = []
+        checks = [
+            ("liability_limit", "Liability coverage"),
+            ("property_limit", "Property damage coverage"),
+            ("medical_limit", "Medical payments coverage"),
+            ("uninsured_motorist_limit", "UM/UIM coverage"),
+            ("collision_deductible", "Collision deductible"),
+        ]
+        for attr, label in checks:
+            if getattr(parsed, attr) is None:
+                missing.append(f"{label} was not found in the document")
+        return missing
+
+    @classmethod
+    def _find_unclear_fields(cls, parsed: ParsedPolicy) -> list[str]:
+        unclear = []
+        conf_checks = [
+            ("liability_confidence", "Liability limit"),
+            ("medical_confidence", "Medical payments limit"),
+            ("property_confidence", "Property damage limit"),
+        ]
+        for attr, label in conf_checks:
+            if getattr(parsed, attr) == "low":
+                unclear.append(f"{label} was detected with low confidence — verify manually")
+        return unclear
+
     @staticmethod
-    def detect_coverage_gaps(parsed: ParsedPolicy) -> list[str]:
-        """Analyze parsed limits and flag potential coverage gaps."""
-        gaps: list[str] = []
+    def detect_coverage_gaps(parsed: ParsedPolicy) -> list[CoverageGap]:
+        gaps: list[CoverageGap] = []
 
         if parsed.property_limit:
             try:
-                prop_val = int(parsed.property_limit.replace("$", "").replace(",", ""))
-                if prop_val < 50000:
-                    gaps.append(
-                        f"Property limit caps payout at ${prop_val:,}. "
-                        f"Consider increasing to $50,000+ to cover a total loss."
-                    )
-            except (ValueError, AttributeError):
-                pass
-
-        if parsed.medical_limit:
-            try:
-                med_val = int(parsed.medical_limit.replace("$", "").replace(",", ""))
-                if med_val < 50000:
-                    gaps.append(
-                        f"Medical limit of ${med_val:,} is below the national average "
-                        f"of $50,000. Consider increasing coverage."
-                    )
+                val = int(parsed.property_limit.replace("$", "").replace(",", ""))
+                if val < 50000:
+                    info = PolicyDecoder.GAP_DESCRIPTIONS["low_property"]
+                    gaps.append(CoverageGap(
+                        field="property_limit",
+                        detail=f"Property damage limit of ${val:,} is below recommended $50,000 minimum.",
+                        why_it_matters=info["why_it_matters"],
+                        potential_consequence=info["consequence"],
+                    ))
             except (ValueError, AttributeError):
                 pass
 
         if not parsed.uninsured_motorist_limit:
-            gaps.append("No uninsured motorist limit was confidently detected. Review this coverage manually.")
+            info = PolicyDecoder.GAP_DESCRIPTIONS["missing_um"]
+            gaps.append(CoverageGap(
+                field="uninsured_motorist_limit",
+                detail="No uninsured/underinsured motorist coverage confidently detected.",
+                why_it_matters=info["why_it_matters"],
+                potential_consequence=info["consequence"],
+            ))
+
+        if not parsed.rental_reimbursement:
+            info = PolicyDecoder.GAP_DESCRIPTIONS["missing_rental"]
+            gaps.append(CoverageGap(
+                field="rental_reimbursement",
+                detail="No rental reimbursement coverage detected.",
+                why_it_matters=info["why_it_matters"],
+                potential_consequence=info["consequence"],
+            ))
+
+        if not parsed.medical_limit:
+            info = PolicyDecoder.GAP_DESCRIPTIONS["missing_medical"]
+            gaps.append(CoverageGap(
+                field="medical_limit",
+                detail="No medical payments coverage detected.",
+                why_it_matters=info["why_it_matters"],
+                potential_consequence=info["consequence"],
+            ))
+
+        if parsed.collision_deductible:
+            try:
+                val = int(parsed.collision_deductible.replace("$", "").replace(",", ""))
+                if val > 1000:
+                    info = PolicyDecoder.GAP_DESCRIPTIONS["high_deductible"]
+                    gaps.append(CoverageGap(
+                        field="collision_deductible",
+                        detail=f"Collision deductible of ${val:,} is considered high.",
+                        why_it_matters=info["why_it_matters"],
+                        potential_consequence=info["consequence"],
+                    ))
+            except (ValueError, AttributeError):
+                pass
 
         return gaps
+
+    @staticmethod
+    def generate_plain_english_summary(parsed: ParsedPolicy) -> str:
+        parts: list[str] = []
+        found = 0
+
+        if parsed.liability_limit:
+            parts.append(f"Liability coverage: {parsed.liability_limit}.")
+            found += 1
+        if parsed.property_limit:
+            parts.append(f"Property damage: {parsed.property_limit}.")
+            found += 1
+        if parsed.medical_limit:
+            parts.append(f"Medical payments: {parsed.medical_limit}.")
+            found += 1
+        if parsed.uninsured_motorist_limit:
+            parts.append(f"UM/UIM: {parsed.uninsured_motorist_limit}.")
+            found += 1
+        if parsed.collision_deductible:
+            parts.append(f"Collision deductible: {parsed.collision_deductible}.")
+            found += 1
+        if parsed.comprehensive_deductible:
+            parts.append(f"Comprehensive deductible: {parsed.comprehensive_deductible}.")
+            found += 1
+        if parsed.rental_reimbursement:
+            parts.append(f"Rental reimbursement: {parsed.rental_reimbursement}.")
+            found += 1
+        if parsed.roadside_assistance:
+            parts.append("Roadside assistance included.")
+            found += 1
+
+        if found == 0:
+            parts.append("No coverage limits could be confidently extracted from this document.")
+
+        if parsed.missing_fields:
+            parts.append(f"Note: {len(parsed.missing_fields)} coverage area(s) were not found and need manual review.")
+
+        gap_count = len(parsed.coverage_gaps)
+        if gap_count > 0:
+            parts.append(f"{gap_count} coverage gap(s) detected — see details below.")
+
+        return " ".join(parts)
 
     @staticmethod
     def generate_llm_prompt(raw_text: str) -> str:
@@ -134,94 +487,21 @@ Extract these fields:
 2. Medical payments limit
 3. Property damage limit
 4. Uninsured/underinsured motorist limit
-5. Deductible amount
-6. Any coverage gaps or unusual exclusions
+5. Deductible amount (collision and comprehensive separately if visible)
+6. Rental reimbursement coverage
+7. Policy effective and expiration dates
+8. Any coverage gaps or unusual exclusions
 
 Only return fields that are actually supported by the document text.
 Do not guess or invent values.
 Also provide a plain-English summary of what this policy covers,
 as if explaining to the policyholder."""
 
-    @classmethod
-    def generate_plain_english_summary(cls, parsed: ParsedPolicy) -> str:
-        parts: list[str] = []
-
-        if parsed.liability_limit:
-            parts.append(f"Liability coverage appears to be {parsed.liability_limit}.")
-        else:
-            parts.append("Liability coverage could not be confidently identified.")
-
-        if parsed.property_limit:
-            parts.append(f"Property damage coverage appears to be {parsed.property_limit}.")
-        if parsed.medical_limit:
-            parts.append(f"Medical payments coverage appears to be {parsed.medical_limit}.")
-        if parsed.uninsured_motorist_limit:
-            parts.append(
-                f"Uninsured or underinsured motorist coverage appears to be {parsed.uninsured_motorist_limit}."
-            )
-        if parsed.deductible:
-            parts.append(f"A deductible of {parsed.deductible} was detected.")
-
-        if parsed.coverage_gaps:
-            parts.append("Potential gaps were detected and should be reviewed carefully.")
-        else:
-            parts.append(
-                "No obvious gap was detected from the extracted limits, but the full policy should still be reviewed."
-            )
-
-        return " ".join(parts)
-
-    @classmethod
-    def _extract_liability_limit(cls, text: str) -> Optional[str]:
-        for line in text.splitlines():
-            if "LIABILITY" in line and "PROPERTY" not in line:
-                match = cls.COMBINED_LIMIT_RE.search(line)
-                if match:
-                    return cls._normalize_money_expression(match.groups())
-        return None
-
-    @classmethod
-    def _extract_uninsured_motorist_limit(cls, text: str) -> Optional[str]:
-        for line in text.splitlines():
-            if "UNINSURED" in line or "UNDERINSURED" in line:
-                match = cls.COMBINED_LIMIT_RE.search(line)
-                if match:
-                    return cls._normalize_money_expression(match.groups())
-                single = cls.MONEY_RE.search(line)
-                if single:
-                    return cls._normalize_money(single.group(0))
-        return None
-
-    @classmethod
-    def _extract_single_limit(cls, text: str, keywords: list[str]) -> Optional[str]:
-        for line in text.splitlines():
-            if any(keyword in line for keyword in keywords):
-                match = cls.MONEY_RE.search(line)
-                if match:
-                    return cls._normalize_money(match.group(0))
-        return None
-
-    @classmethod
-    def _extract_deductible(cls, text: str) -> Optional[str]:
-        deductibles: list[int] = []
-        for line in text.splitlines():
-            if "DEDUCT" in line:
-                for match in cls.MONEY_RE.findall(line):
-                    try:
-                        deductibles.append(int(cls._normalize_money(match).replace("$", "").replace(",", "")))
-                    except ValueError:
-                        continue
-        if not deductibles:
-            return None
-        return f"${min(deductibles):,}"
-
     @staticmethod
     def _normalize_money(raw: str) -> str:
         digits = raw.replace("$", "").replace(" ", "").replace(",", "")
         value = float(digits)
-        if value.is_integer():
-            return f"${int(value):,}"
-        return f"${value:,.2f}"
+        return f"${int(value):,}" if value.is_integer() else f"${value:,.2f}"
 
     @classmethod
     def _normalize_money_expression(cls, groups: tuple[Optional[str], Optional[str], Optional[str]]) -> str:

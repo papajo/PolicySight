@@ -101,13 +101,12 @@ Only use values supported by the document text. Do not guess."""
             )
             data = json.loads(result)
             llm_policy = ParsedPolicy(**data)
-            merged = ParsedPolicy(
-                liability_limit=parsed.liability_limit or llm_policy.liability_limit,
-                medical_limit=parsed.medical_limit or llm_policy.medical_limit,
-                property_limit=parsed.property_limit or llm_policy.property_limit,
-                uninsured_motorist_limit=parsed.uninsured_motorist_limit or llm_policy.uninsured_motorist_limit,
-                deductible=parsed.deductible or llm_policy.deductible,
-            )
+            merged_dict = parsed.model_dump()
+            llm_dict = llm_policy.model_dump(exclude_none=True)
+            for key, val in llm_dict.items():
+                if merged_dict.get(key) is None and val is not None:
+                    merged_dict[key] = val
+            merged = ParsedPolicy(**merged_dict)
             merged.coverage_gaps = PolicyDecoder.detect_coverage_gaps(merged)
             merged.plain_english_summary = PolicyDecoder.generate_plain_english_summary(merged)
             return merged
