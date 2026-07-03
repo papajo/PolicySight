@@ -21,14 +21,42 @@ import WarningIcon from "@mui/icons-material/Warning";
 import api from "../services/api";
 
 interface ParsedPolicy {
-  liability_limit: string;
-  medical_limit: string;
-  property_limit: string;
-  uninsured_motorist_limit: string;
-  deductible: string;
+  liability_limit: string | null;
+  medical_limit: string | null;
+  property_limit: string | null;
+  uninsured_motorist_limit: string | null;
+  deductible: string | null;
   coverage_gaps: string[];
   plain_english_summary: string;
 }
+
+const formatApiError = (detail: unknown): string => {
+  if (typeof detail === "string") {
+    return detail;
+  }
+
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => {
+        if (typeof item === "string") {
+          return item;
+        }
+
+        if (item && typeof item === "object" && "msg" in item && typeof item.msg === "string") {
+          return item.msg;
+        }
+
+        return JSON.stringify(item);
+      })
+      .join(" ");
+  }
+
+  if (detail && typeof detail === "object") {
+    return JSON.stringify(detail);
+  }
+
+  return "Failed to decode policy. Please try again.";
+};
 
 const PolicyDecoder: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -56,7 +84,7 @@ const PolicyDecoder: React.FC = () => {
       const response = await api.post("/policies/decode", formData);
       setResult(response.data);
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Failed to decode policy. Please try again.");
+      setError(formatApiError(err.response?.data?.detail));
     } finally {
       setLoading(false);
     }

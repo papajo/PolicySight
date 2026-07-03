@@ -86,6 +86,15 @@ async def register(request: RegisterRequest, db: Session = Depends(get_db)):
 @router.post("/login", response_model=TokenResponse)
 async def login(request: LoginRequest, db: Session = Depends(get_db)):
     """Login with email and password."""
+    # Demo bypass: allow demo credentials without DB
+    if request.email == "demo@policysight.io" and request.password == "demo123":
+        return TokenResponse(
+            access_token=create_access_token(data={"sub": 1, "role": "user"}),
+            user_id=1,
+            email="demo@policysight.io",
+            role="user",
+        )
+
     user = db.query(User).filter(User.email == request.email).first()
     if not user or not verify_password(request.password, user.encrypted_password):
         raise HTTPException(

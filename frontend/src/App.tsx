@@ -10,8 +10,6 @@ import {
   CssBaseline,
   Chip,
   Avatar,
-  Menu,
-  MenuItem,
   IconButton,
 } from "@mui/material";
 import GavelIcon from "@mui/icons-material/Gavel";
@@ -26,7 +24,6 @@ const App: React.FC = () => {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("auth_token");
