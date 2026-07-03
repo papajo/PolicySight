@@ -16,6 +16,7 @@ from src.core.scenario import evaluate_scenario, ScenarioResult
 from src.core.decision import generate_decision, CoverageDecision
 from src.core.edge_cases import classify_edge_cases, EdgeCaseResult
 from src.core.cost_estimator import estimate_costs, CostEstimate
+from src.core.comparison import compare_policies, ComparisonResult
 from src.core.audit import log_action
 from src.db.base import get_db
 
@@ -269,4 +270,36 @@ async def estimate_out_of_pocket(input_data: EstimateRequest):
         comprehensive_applies=input_data.comprehensive_applies,
     )
     log_action("cost_estimate", "policy", f"Damage est: ${input_data.damage_estimate:,.0f} → OOP: ${result.total_out_of_pocket:,.0f}")
+    return result
+
+
+class CompareRequest(BaseModel):
+    policy_a_text: str
+    policy_b_text: str
+    label_a: str = "Current Policy"
+    label_b: str = "New Policy"
+
+
+@router.post("/compare", response_model=ComparisonResult)
+async def compare_policies_endpoint(input_data: CompareRequest):
+    """
+    Compare two policies side-by-side. (PDF REQ-018)
+    Shows improvements, reductions, bridged gaps between policies.
+    """
+    if not input_data.policy_a_text or len(input_data.policy_a_text.strip()) < 20:
+        raise HTTPException(status_code=400, detail="Please provide at least 20 characters for Policy A.")
+    if not input_data.policy_b_text or len(input_data.policy_b_text.strip()) < 20:
+        raise HTTPException(status_code=400, detail="Please provide at least 20 characters for Policy B.")
+
+    parsed_a = PolicyDecoder.parse_policy_text(input_data.policy_a_text)
+    parsed_b = PolicyDecoder.parse_policy_text(input_data.policy_b_text)
+    parsed_a.raw_text = input_data.policy_a_text
+    parsed_b.raw_text = input_data.policy_b_text
+    parsed_a.coverage_gaps = PolicyDecoder.detect_coverage_gaps(parsed_a)
+    parsed_b.coverage_gaps = PolicyDecoder.detect_coverage_gaps(parsed_b)
+
+    result = compare_policies(parsed_a, parsed_b)
+    result.policy_a_label = input_data.label_a
+    result.policy_b_label = input_data.label_b
+    log_action("policy_compare", "policy", f"Compared policies: {len(result.diffs)} diffs, {len(result.improvements)} improvements, {len(result.reductions)} reductions")
     return result

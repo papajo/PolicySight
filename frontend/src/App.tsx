@@ -31,6 +31,8 @@ import EdgeCaseClassifier from "./pages/EdgeCaseClassifier";
 import CostEstimator from "./pages/CostEstimator";
 import StateRules from "./pages/StateRules";
 import FeedbackDashboard from "./pages/FeedbackLoop";
+import PolicyComparison from "./pages/PolicyComparison";
+import CopilotDashboard from "./pages/CopilotDashboard";
 
 const App: React.FC = () => {
   const navigate = useNavigate();
@@ -119,6 +121,12 @@ const App: React.FC = () => {
               <Button color="inherit" component={Link} to="/feedback">
                 Feedback
               </Button>
+              <Button color="inherit" component={Link} to="/compare">
+                Compare
+              </Button>
+              <Button color="inherit" component={Link} to="/copilot">
+                Copilot
+              </Button>
             </Box>
           )}
 
@@ -202,6 +210,14 @@ const App: React.FC = () => {
           <Route
             path="/feedback"
             element={isAuthenticated ? <FeedbackDashboard /> : <Login />}
+          />
+          <Route
+            path="/compare"
+            element={isAuthenticated ? <PolicyComparison /> : <Login />}
+          />
+          <Route
+            path="/copilot"
+            element={isAuthenticated ? <CopilotDashboard /> : <Login />}
           />
         </Routes>
       </Container>
