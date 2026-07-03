@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from src.db.base import get_db
 from src.ai.client import LLMService, ParsedPolicy
+from src.ai.ocr import OCRService
 from src.config.settings import get_settings
 
 router = APIRouter()
@@ -27,12 +28,18 @@ async def decode_policy(
             detail="Invalid file type. Please upload a PDF or image of your SLIP document.",
         )
 
-    # Read file content (binary safe)
+    # Read file content
     content = await file.read()
-    # For images, we'd use OCR; for now, pass raw bytes as placeholder
-    raw_text = content.decode("utf-8", errors="replace")
 
-    # Call LLM service (placeholder returns mock data)
+    # Extract text via OCR (handles both images and PDFs)
+    ocr = OCRService()
+    raw_text = await ocr.extract_text(content, file.filename)
+
+    # Fallback: if OCR didn't produce meaningful text, try raw decode
+    if not raw_text or raw_text.startswith("[No text"):
+        raw_text = content.decode("utf-8", errors="replace")
+
+    # Call LLM service (falls back to mock if no API key configured)
     settings = get_settings()
     llm = LLMService(api_key=settings.openai_api_key, model=settings.openai_model)
     parsed_policy = await llm.parse_slip(raw_text)

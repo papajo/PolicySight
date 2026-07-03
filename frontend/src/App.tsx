@@ -1,5 +1,5 @@
-import React from "react";
-import { Routes, Route, Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Routes, Route, Link, useNavigate } from "react-router-dom";
 import {
   AppBar,
   Toolbar,
@@ -8,13 +8,44 @@ import {
   Box,
   Button,
   CssBaseline,
+  Chip,
+  Avatar,
+  Menu,
+  MenuItem,
+  IconButton,
 } from "@mui/material";
 import GavelIcon from "@mui/icons-material/Gavel";
+import LogoutIcon from "@mui/icons-material/Logout";
 import PolicyDecoder from "./pages/PolicyDecoder";
 import ClaimsAdvocate from "./pages/ClaimsAdvocate";
 import Trajectory from "./pages/Trajectory";
+import Login from "./pages/Login";
+import Home from "./pages/Home";
 
 const App: React.FC = () => {
+  const navigate = useNavigate();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem("auth_token");
+    const email = localStorage.getItem("user_email");
+    if (token) {
+      setIsAuthenticated(true);
+      setUserEmail(email);
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("user_email");
+    localStorage.removeItem("user_id");
+    setIsAuthenticated(false);
+    setUserEmail(null);
+    navigate("/login");
+  };
+
   return (
     <>
       <CssBaseline />
@@ -26,32 +57,74 @@ const App: React.FC = () => {
             component={Link}
             to="/"
             sx={{
-              flexGrow: 1,
               textDecoration: "none",
               color: "inherit",
               fontWeight: 700,
               letterSpacing: 1,
+              mr: 3,
             }}
           >
             PolicySight
           </Typography>
-          <Button color="inherit" component={Link} to="/">
-            Decoder
-          </Button>
-          <Button color="inherit" component={Link} to="/claims">
-            Claims
-          </Button>
-          <Button color="inherit" component={Link} to="/trajectory">
-            Forecast
-          </Button>
+
+          {isAuthenticated && (
+            <Box sx={{ display: "flex", gap: 1, flexGrow: 1 }}>
+              <Button color="inherit" component={Link} to="/">
+                Home
+              </Button>
+              <Button color="inherit" component={Link} to="/decoder">
+                Decoder
+              </Button>
+              <Button color="inherit" component={Link} to="/claims">
+                Claims
+              </Button>
+              <Button color="inherit" component={Link} to="/trajectory">
+                Forecast
+              </Button>
+            </Box>
+          )}
+
+          {!isAuthenticated && (
+            <Box sx={{ flexGrow: 1 }} />
+          )}
+
+          {isAuthenticated ? (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Chip
+                avatar={<Avatar>{userEmail?.[0]?.toUpperCase() || "U"}</Avatar>}
+                label={userEmail || "User"}
+                variant="outlined"
+                size="small"
+                sx={{ color: "white", borderColor: "rgba(255,255,255,0.5)" }}
+              />
+              <IconButton color="inherit" onClick={handleLogout} size="small">
+                <LogoutIcon />
+              </IconButton>
+            </Box>
+          ) : (
+            <Button color="inherit" component={Link} to="/login">
+              Login
+            </Button>
+          )}
         </Toolbar>
       </AppBar>
 
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Routes>
-          <Route path="/" element={<PolicyDecoder />} />
-          <Route path="/claims" element={<ClaimsAdvocate />} />
-          <Route path="/trajectory" element={<Trajectory />} />
+          <Route path="/" element={isAuthenticated ? <Home /> : <Login />} />
+          <Route path="/login" element={<Login />} />
+          <Route
+            path="/decoder"
+            element={isAuthenticated ? <PolicyDecoder /> : <Login />}
+          />
+          <Route
+            path="/claims"
+            element={isAuthenticated ? <ClaimsAdvocate /> : <Login />}
+          />
+          <Route
+            path="/trajectory"
+            element={isAuthenticated ? <Trajectory /> : <Login />}
+          />
         </Routes>
       </Container>
 

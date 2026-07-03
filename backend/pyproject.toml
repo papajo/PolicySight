@@ -20,6 +20,9 @@ dependencies = [
     "redis>=5.0.0",
     "pillow>=10.1.0",
     "pytesseract>=0.3.10",
+    "PyMuPDF>=1.23.0",
+    "PyPDF2>=3.0.0",
+    "pdfminer.six>=20221105",
 ]
 
 [build-system]
