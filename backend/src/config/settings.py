@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expiration_hours: int = 24
 
+    # Redis (optional, for Celery scheduler)
+    redis_url: str = "redis://localhost:6379/0"
+
     # Stripe (placeholder)
     stripe_secret_key: str = "sk_test_placeholder"
     stripe_webhook_secret: str = "whsec_placeholder"

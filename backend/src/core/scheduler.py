@@ -17,8 +17,8 @@ settings = get_settings()
 # Celery app configuration
 celery_app = Celery(
     "policysight",
-    broker=settings.redis_url if hasattr(settings, "redis_url") else "redis://localhost:6379/0",
-    backend=settings.redis_url if hasattr(settings, "redis_url") else "redis://localhost:6379/0",
+    broker=settings.redis_url,
+    backend=settings.redis_url,
 )
 
 celery_app.conf.update(
