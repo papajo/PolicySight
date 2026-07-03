@@ -44,11 +44,13 @@ docker compose up --build
 ### Backend (without Docker)
 
 ```bash
+# From project root (recommended):
+python run.py
+
+# Or from backend directory:
 cd backend
-python -m venv .venv
 source .venv/bin/activate
-pip install -e .
-uvicorn src.main:app --reload
+uvicorn src.main:app --host 127.0.0.1 --port 9999 --reload
 ```
 
 ### Frontend (without Docker)
