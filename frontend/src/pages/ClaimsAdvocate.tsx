@@ -59,7 +59,7 @@ const ClaimsAdvocate: React.FC = () => {
       const response = await api.post("/claims/advocate", formData);
       setResult(response.data);
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Failed to process claim. Please try again.");
+      setError(err.message || formatApiError(err.response?.data?.detail));
     } finally {
       setLoading(false);
     }

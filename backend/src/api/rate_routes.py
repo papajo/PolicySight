@@ -6,9 +6,8 @@ Handles premium forecasting and peer comparison.
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from src.core.trajectory import RateTrajectory
 from src.db.base import get_db
-from src.ai.client import LLMService
-from src.config.settings import get_settings
 
 router = APIRouter()
 
@@ -24,47 +23,42 @@ async def forecast_rate(
     Compares your driving profile against anonymized peer market data
     and returns a "Stay" or "Switch" recommendation.
     """
-    from src.db.models import RateSnapshot, Claim
+    from src.db.models import Claim, RateSnapshot
 
-    claims_data: list[dict] = []
-    peer_avg = 0.0
+    if user_id <= 0:
+        raise HTTPException(status_code=400, detail="A valid user_id is required.")
+    if current_rate <= 0:
+        raise HTTPException(status_code=400, detail="Current rate must be greater than zero.")
+    if current_rate > 10000:
+        raise HTTPException(status_code=400, detail="Current rate is outside the supported range.")
 
     try:
-        # Fetch user's rate history (may fail if DB is not available)
         rate_history = (
             db.query(RateSnapshot)
             .filter(RateSnapshot.user_id == user_id)
             .all()
         )
-
-        # Fetch user's claims history
         claims_history = (
             db.query(Claim)
             .filter(Claim.user_id == user_id)
             .all()
         )
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail="Rate history is temporarily unavailable.") from exc
 
-        claims_data = [
-            {"id": c.id, "status": c.status, "filed_date": str(c.filed_date)}
-            for c in claims_history
-        ]
+    claims_count = len(claims_history)
+    peer_avg = 0.0
+    if rate_history:
+        peer_avg = sum(r.rate for r in rate_history) / len(rate_history)
 
-        if rate_history:
-            peer_avg = sum(r.rate for r in rate_history) / len(rate_history)
-    except Exception:
-        # DB not available — use defaults
-        pass
-
-    settings = get_settings()
-    llm = LLMService(api_key=settings.openai_api_key, model=settings.openai_model)
-
-    forecast = await llm.forecast_rate(
+    forecast = RateTrajectory.calculate_forecast(
         current_rate=current_rate,
-        claims_history=claims_data,
+        claims_count=claims_count,
         peer_avg_rate=peer_avg,
+        years_with_carrier=max(len(rate_history), 1),
     )
 
-    return forecast
+    return forecast.model_dump()
 
 
 @router.post("/snapshot")
