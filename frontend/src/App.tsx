@@ -25,6 +25,7 @@ import LapseBridge from "./pages/LapseBridge";
 import CoverageTimeline from "./pages/CoverageTimeline";
 import ScenarioChecker from "./pages/ScenarioChecker";
 import ClaimIntakeForm from "./pages/ClaimIntake";
+import DecisionDraft from "./pages/DecisionDraft";
 
 const App: React.FC = () => {
   const navigate = useNavigate();
@@ -95,6 +96,9 @@ const App: React.FC = () => {
               <Button color="inherit" component={Link} to="/intake">
                 Claim Intake
               </Button>
+              <Button color="inherit" component={Link} to="/decision">
+                Decisions
+              </Button>
             </Box>
           )}
 
@@ -154,6 +158,10 @@ const App: React.FC = () => {
           <Route
             path="/intake"
             element={isAuthenticated ? <ClaimIntakeForm /> : <Login />}
+          />
+          <Route
+            path="/decision"
+            element={isAuthenticated ? <DecisionDraft /> : <Login />}
           />
         </Routes>
       </Container>

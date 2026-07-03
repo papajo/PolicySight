@@ -13,6 +13,7 @@ from src.config.settings import get_settings
 from src.core.policy_decoder import PolicyDecoder, ParsedPolicy
 from src.core.explainer import CoverageExplainer, CoverageExplanationSet, EvidenceAnswer
 from src.core.scenario import evaluate_scenario, ScenarioResult
+from src.core.decision import generate_decision, CoverageDecision
 from src.db.base import get_db
 
 router = APIRouter()
@@ -177,3 +178,25 @@ async def check_scenario(input_data: ScenarioRequest):
     parsed = PolicyDecoder.parse_policy_text(input_data.text)
     parsed.coverage_gaps = PolicyDecoder.detect_coverage_gaps(parsed)
     return evaluate_scenario(parsed, input_data.scenario)
+
+
+class DecisionRequest(BaseModel):
+    """Request model for coverage decision."""
+    text: str
+    claim: str
+
+
+@router.post("/decision", response_model=CoverageDecision)
+async def coverage_decision(input_data: DecisionRequest):
+    """
+    Generate a structured claim coverage decision draft
+    with confidence levels and escalation recommendations. (REQ-008, REQ-009)
+    """
+    if not input_data.text or len(input_data.text.strip()) < 20:
+        raise HTTPException(status_code=400, detail="Please provide at least 20 characters of policy text.")
+    if not input_data.claim or len(input_data.claim.strip()) < 3:
+        raise HTTPException(status_code=400, detail="Please describe the claim.")
+
+    parsed = PolicyDecoder.parse_policy_text(input_data.text)
+    parsed.coverage_gaps = PolicyDecoder.detect_coverage_gaps(parsed)
+    return generate_decision(parsed, input_data.claim)
