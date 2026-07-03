@@ -23,6 +23,7 @@ import Login from "./pages/Login";
 import Home from "./pages/Home";
 import LapseBridge from "./pages/LapseBridge";
 import CoverageTimeline from "./pages/CoverageTimeline";
+import ScenarioChecker from "./pages/ScenarioChecker";
 
 const App: React.FC = () => {
   const navigate = useNavigate();
@@ -87,6 +88,9 @@ const App: React.FC = () => {
               <Button color="inherit" component={Link} to="/timeline">
                 Timeline
               </Button>
+              <Button color="inherit" component={Link} to="/scenario">
+                Scenarios
+              </Button>
             </Box>
           )}
 
@@ -138,6 +142,10 @@ const App: React.FC = () => {
           <Route
             path="/timeline"
             element={isAuthenticated ? <CoverageTimeline /> : <Login />}
+          />
+          <Route
+            path="/scenario"
+            element={isAuthenticated ? <ScenarioChecker standalone /> : <Login />}
           />
         </Routes>
       </Container>

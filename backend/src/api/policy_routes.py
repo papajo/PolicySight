@@ -12,6 +12,7 @@ from src.ai.ocr import OCRService
 from src.config.settings import get_settings
 from src.core.policy_decoder import PolicyDecoder, ParsedPolicy
 from src.core.explainer import CoverageExplainer, CoverageExplanationSet, EvidenceAnswer
+from src.core.scenario import evaluate_scenario, ScenarioResult
 from src.db.base import get_db
 
 router = APIRouter()
@@ -154,3 +155,25 @@ async def ask_policy_question(input_data: AskRequest):
     parsed = PolicyDecoder.parse_policy_text(input_data.text)
     parsed.coverage_gaps = PolicyDecoder.detect_coverage_gaps(parsed)
     return CoverageExplainer.answer_question(parsed, input_data.question)
+
+
+class ScenarioRequest(BaseModel):
+    """Request model for scenario-based coverage check."""
+    text: str
+    scenario: str
+
+
+@router.post("/scenario", response_model=ScenarioResult)
+async def check_scenario(input_data: ScenarioRequest):
+    """
+    Evaluate a natural-language scenario against a policy
+    to determine which coverages apply. (REQ-006)
+    """
+    if not input_data.text or len(input_data.text.strip()) < 20:
+        raise HTTPException(status_code=400, detail="Please provide at least 20 characters of policy text.")
+    if not input_data.scenario or len(input_data.scenario.strip()) < 3:
+        raise HTTPException(status_code=400, detail="Please describe the scenario.")
+
+    parsed = PolicyDecoder.parse_policy_text(input_data.text)
+    parsed.coverage_gaps = PolicyDecoder.detect_coverage_gaps(parsed)
+    return evaluate_scenario(parsed, input_data.scenario)
