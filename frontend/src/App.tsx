@@ -26,6 +26,7 @@ import CoverageTimeline from "./pages/CoverageTimeline";
 import ScenarioChecker from "./pages/ScenarioChecker";
 import ClaimIntakeForm from "./pages/ClaimIntake";
 import DecisionDraft from "./pages/DecisionDraft";
+import AuditTrail from "./pages/AuditTrail";
 
 const App: React.FC = () => {
   const navigate = useNavigate();
@@ -99,6 +100,9 @@ const App: React.FC = () => {
               <Button color="inherit" component={Link} to="/decision">
                 Decisions
               </Button>
+              <Button color="inherit" component={Link} to="/audit">
+                Audit
+              </Button>
             </Box>
           )}
 
@@ -162,6 +166,10 @@ const App: React.FC = () => {
           <Route
             path="/decision"
             element={isAuthenticated ? <DecisionDraft /> : <Login />}
+          />
+          <Route
+            path="/audit"
+            element={isAuthenticated ? <AuditTrail /> : <Login />}
           />
         </Routes>
       </Container>

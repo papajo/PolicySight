@@ -14,6 +14,7 @@ from src.core.policy_decoder import PolicyDecoder, ParsedPolicy
 from src.core.explainer import CoverageExplainer, CoverageExplanationSet, EvidenceAnswer
 from src.core.scenario import evaluate_scenario, ScenarioResult
 from src.core.decision import generate_decision, CoverageDecision
+from src.core.audit import log_action
 from src.db.base import get_db
 
 router = APIRouter()
@@ -68,7 +69,9 @@ async def decode_policy(
             detail="We could not extract enough readable text from this document. Please upload a clearer PDF or image.",
         )
 
-    return await _parse_policy(raw_text)
+    result = await _parse_policy(raw_text)
+    log_action("policy_decode", "policy", f"Decoded policy from file: {file.filename}")
+    return result
 
 
 @router.post("/decode-text", response_model=ParsedPolicy)
@@ -82,7 +85,9 @@ async def decode_policy_text(input_data: PolicyTextInput):
             detail="Please paste at least 20 characters of policy text.",
         )
 
-    return await _parse_policy(input_data.text)
+    result = await _parse_policy(input_data.text)
+    log_action("policy_decode", "policy", "Decoded policy from pasted text")
+    return result
 
 
 async def _parse_policy(raw_text: str) -> ParsedPolicy:
@@ -139,7 +144,9 @@ async def explain_coverage(input_data: ExplainRequest):
     parsed = PolicyDecoder.parse_policy_text(input_data.text)
     parsed.coverage_gaps = PolicyDecoder.detect_coverage_gaps(parsed)
     parsed.plain_english_summary = PolicyDecoder.generate_plain_english_summary(parsed)
-    return CoverageExplainer.explain(parsed)
+    result = CoverageExplainer.explain(parsed)
+    log_action("policy_explain", "policy", f"Generated {len(result.explanations)} coverage explanations (confidence: {result.overall_confidence})")
+    return result
 
 
 @router.post("/ask", response_model=EvidenceAnswer)
@@ -155,7 +162,9 @@ async def ask_policy_question(input_data: AskRequest):
 
     parsed = PolicyDecoder.parse_policy_text(input_data.text)
     parsed.coverage_gaps = PolicyDecoder.detect_coverage_gaps(parsed)
-    return CoverageExplainer.answer_question(parsed, input_data.question)
+    result = CoverageExplainer.answer_question(parsed, input_data.question)
+    log_action("policy_ask", "policy", f"Q: {input_data.question[:100]} → confidence: {result.confidence}")
+    return result
 
 
 class ScenarioRequest(BaseModel):
@@ -177,7 +186,9 @@ async def check_scenario(input_data: ScenarioRequest):
 
     parsed = PolicyDecoder.parse_policy_text(input_data.text)
     parsed.coverage_gaps = PolicyDecoder.detect_coverage_gaps(parsed)
-    return evaluate_scenario(parsed, input_data.scenario)
+    result = evaluate_scenario(parsed, input_data.scenario)
+    log_action("scenario_check", "policy", f"Scenario: {input_data.scenario[:100]} → covered={result.is_covered}")
+    return result
 
 
 class DecisionRequest(BaseModel):
@@ -199,4 +210,6 @@ async def coverage_decision(input_data: DecisionRequest):
 
     parsed = PolicyDecoder.parse_policy_text(input_data.text)
     parsed.coverage_gaps = PolicyDecoder.detect_coverage_gaps(parsed)
-    return generate_decision(parsed, input_data.claim)
+    result = generate_decision(parsed, input_data.claim)
+    log_action("coverage_decision", "policy", f"Claim: {input_data.claim[:100]} → escalation: {result.escalation_level}, confidence: {result.overall_confidence}")
+    return result

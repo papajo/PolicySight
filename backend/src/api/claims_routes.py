@@ -11,6 +11,7 @@ from src.db.base import get_db
 from src.ai.client import LLMService, ClaimValuation
 from src.config.settings import get_settings
 from src.core.claims import get_intake_steps, submit_intake, get_intakes, ClaimIntake
+from src.core.audit import log_action
 
 router = APIRouter()
 
@@ -28,7 +29,9 @@ class IntakeSubmitRequest(BaseModel):
 @router.post("/intake/submit", response_model=ClaimIntake)
 async def submit_claim_intake(input_data: IntakeSubmitRequest):
     """Submit a completed claim intake form. (REQ-007)"""
-    return submit_intake(input_data.responses)
+    result = submit_intake(input_data.responses)
+    log_action("claim_intake", "claims", f"Claim filed: {result.date_of_loss} at {result.location}")
+    return result
 
 
 @router.get("/intake/list")
