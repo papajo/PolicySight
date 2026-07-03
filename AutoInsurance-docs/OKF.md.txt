@@ -1,0 +1,69 @@
+# OKF.md
+
+# Product: PolicySight
+
+**Type:** Concept (Sellable Tool)
+**Domain:** Auto Insurance / InsurTech
+**Status:** Draft / Idea Phase
+**Created:** Based on user analysis of US auto insurance landscape
+
+---
+
+## Summary
+PolicySight is a third-party auto insurance tool that acts as a "Digital Deputy Agent." It fills the gap left by existing market players (comparators like NerdWallet, carriers like State Farm) which are either biased or limited to price only. It connects the user's **Policy**, **Premium**, and **Claim** into one intelligent dashboard.
+
+---
+
+## Core Features (Modules)
+
+1.  **Policy Decoder ("SLIP Transposer"):**
+    *   **Action:** User uploads their policy document (SLIP).
+    *   **AI:** Translates dense legal jargon into plain English.
+    *   **Value:** Reveals hidden gaps (e.g., "Your medical limit is low compared to the national average" or "You are underinsured on property").
+
+2.  **Claims Advocate ("Liability Navigator"):**
+    *   **Action:** User uploads accident photos and police reports.
+    *   **AI:** Calculates granular sub-limit aggregation. Determines exactly what *should* be paid vs. what the carrier is offering.
+    *   **Value:** Gives consumers professional-grade defense strategy for free (normally costs $1,500-$5,000 in legal fees).
+
+3.  **Rate Trajectory Bot ("Renewal Oracle"):**
+    *   **Action:** Predicts next year's premium before the user renews.
+    *   **AI:** Compares user's driving profile against anonymized peer market data (ZIP code averages).
+    *   **Value:** Exposes carrier "loyalty marks" or hidden rate hikes so the user can negotiate or switch.
+
+4.  **Lapse Bridge ("Covr-Shift"):**
+    *   **Action:** Automated fail-safe during carrier switching.
+    *   **Mechanism:** Monitors "Renewal Window." If no new carrier accepts the user, an emergency micro-policy bridges the gap automatically.
+    *   **Value:** Eliminates the "Gap Day" that permanently brands a driver as high-risk.
+
+---
+
+## Market Gap & Problem Solved
+*   **Existing Tools:** Focus on "Apples-to-Oranges" price comparisons. They cannot compare **coverage value** because carriers do not expose granular sub-limits or claims reserves in their APIs.
+*   **The Problem:** 70% of consumers renew blindly. Claimants don't understand their payout rights. Consumers accept rate hikes without knowing why.
+*   **PolicySight's Solution:** Neutral data layer that tells you exactly **what you have**, **what you are getting**, and **what you will pay next**.
+
+---
+
+## Business Model
+*   **Freemium:** Free access to the Policy Decoder (drives sign-ups).
+*   **Subscription:** $29/month for Renewal Forecast & Claims Advisory.
+*   **Per-Event:** One-time fee for deep-dive Claims Defense ($99, vs. $1500+ for a lawyer).
+*   **Lead Gen Upsell:** Partners with brokerages for new business.
+
+---
+
+## Technical & Regulatory Requirements
+*   **Data Access:** Relies on **User-Generated Data (UGD)**. Does *not* require backend access to carrier systems (which are currently gated/walled).
+*   **AI/ML:** Fine-tuned LLM for SLIP translation. OCR for document scanning. Predictive models for peer rate matching.
+*   **Compliance:** Must navigate US state-by-state "Agent" licensing and lead generation laws (Online Application Law).
+
+---
+
+## Unique Value Proposition
+*   **Decoder** (Show what you own)
+*   **Advocate** (Defend your payout)
+*   **Oracle** (Predict your price)
+*   **Bridge** (Protect your record)
+
+**Key Differentiator:** The first tool that connects all four states of the insurance lifecycle (Buy, Have, Drive, Claim) without requiring the consumer to hire a human agent.

@@ -1,0 +1,68 @@
+Here is the prompt you can feed to your AI Agent (Cursor, Claude, Copilot, etc.):
+
+***
+
+# System Role
+You are a Senior InsurTech Engineer. You build for reliability and performance.
+
+# Project: PolicySight
+**Type:** AI Auto-Insurance Middleware
+**Stack:** Python (FastAPI), TypeScript (Vite), PostgreSQL, Docker.
+**Core Modules:** Policy Decoder, Claims Advocate, Rate Trajectory, Lapse Bridge.
+
+# Execution Protocol
+Execute the 3 Phases below **sequentially**. After completing a phase, commit and push. Do **not** output conversational text.
+
+---
+
+## Phase 1: Prototype MVP Scaffolding
+**Goal:** Set up the repo, dependencies, and empty core structure.
+
+1.  Initialize repo with `README.md`, `.gitignore` (Python & JS), `Dockerfile`, `docker-compose.yml`, `.env.example`.
+2.  Create backend folders: `src/core/` (with `__init__.py`), `src/config/`, `src/ai/`.
+3.  Create `pyproject.toml` with dependencies: `fastapi`, `uvicorn`, `pydantic`, `sqlalchemy`, `openai`, `python-dotenv`, `stripe` (placeholder).
+4.  Create `package.json` with dependencies: `react`, `react-router-dom`, `axios`, `@mui/material`.
+5.  Create placeholder DB config at `src/db/base.py` (PostgreSQL connection string).
+6.  Create placeholder AI client at `src/ai/client.py` (mock response).
+7.  Commit with message `init:mvp-scaffold` and push to `origin`.
+
+---
+
+## Phase 2: Design & Architecture
+**Goal:** Define the database schema and core API contracts.
+
+1.  Create `db/schema.sql` with tables:
+    *   `users` (id, email, encrypted_password, role[agent, user])
+    *   `policies` (id, user_id, carrier_id, status, current_rate)
+    *   `policy_snapshots` (id, policy_id, raw_slip_content, parsed_limits JSON) — *Stores the user's "read" of their policy.*
+    *   `claims` (id, user_id, carrier_id, status, filed_date, photo_blob, description)
+    *   `rate_snapshots` (id, user_id, carrier_id, date, rate) — *Stores historical pricing for trajectory.*
+2.  Create API Routes in `src/api/`:
+    *   `main.py`: Base router, auth (JWT).
+    *   `policy_routes.py`: `POST /policies/decode` (uploads SLIP, returns parsed limits).
+    *   `claims_routes.py`: `POST /claims/advocate` (uploads photos, returns sub-limit breakdown).
+    *   `rate_routes.py`: `GET /rates/forecast` (takes user profile, returns next-year prediction).
+3.  Create Services in `src/core/`:
+    *   `policy_decoder.py`: Pydantic model `ParsedPolicy`. Contains the **LLM Prompt Template** for SLIP parsing.
+    *   `claims_advocate.py`: `ClaimValuationEngine` class. Logic to cross-reference `ParsedPolicy` limits against claim line items.
+    *   `trajectory.py`: `RateTrajectory` service. Logic to compare user risk profile against peer market data.
+    *   `lapse.py`: `CoverageGapBridge` service. Cron job definition logic for gap detection.
+4.  Commit with message `feat: architecture-v1` and push to `origin`.
+
+---
+
+## Phase 3: Final Product
+**Goal:** Implement production logic and UI.
+
+1.  **Policy Decoder:** Implement `LLMService`. Validate user upload. Call LLM with system prompt + user file. Parse response into `ParsedPolicy` model. Return JSON to user.
+2.  **Claims Advocate:** Implement `ClaimsEngine`. Ingest parsed policy limits from DB. Ingest claim photos (OCR). Calculate payout per sub-limit. Compare against carrier counter-offer. Return verdict.
+3.  **Rate Trajectory:** Implement `TrajectoryService`. Use user's `rate_snapshots` and `claims` history. Apply peer market delta. Return "Stay" or "Switch" recommendation with savings amount.
+4.  **Lapse Bridge:** Create endpoint `POST /lapse/register`. Set up a background scheduler (Celery or similar) to check coverage status. If gap > 0, trigger bridge API.
+5.  **Frontend UI:**
+    *   `Pages/PolicyDecoder.tsx`: Drag & drop SLIP upload, visual limit breakdown.
+    *   `Pages/ClaimsAdvocate.tsx`: Step-by-step claim form, comparison table (Policy Limit vs Carrier Offer).
+    *   `Pages/Trajectory.tsx`: Historical chart, "What you will pay" graphic.
+6.  Commit with message `release: v1.0` and push to `origin/main`.
+
+---
+**END**

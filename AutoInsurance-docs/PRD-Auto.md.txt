@@ -1,0 +1,149 @@
+Here is a Product Requirements Document (PRD) for a tool that fills the specific gap in the current market, written from the perspective of an expert auto insurance company.
+
+---
+
+# Product Requirements Document: "PolicySight"
+**"Your Policy, Decoded. Your Claim, Defended."**
+
+**Product Type:** AI-Driven Auto Insurance Middleware
+**Persona:** InsurTech Product Lead / Ex-Auto Insurance Agent
+**Date:** October 2023
+**Status:** Concept Phase
+
+---
+
+## 1. Executive Summary (The Vision)
+The current auto insurance market is a "Winner Takes All" game. Consumers either renew with their current carrier to avoid the hassle of shopping, or they use comparison sites (NerdWallet, Compare.com) which compare prices but ignore **coverage substance**.
+
+**We are building the first neutral, third-party tool that operates at the two most profitable (and painful) moments in the insurance lifecycle: The Renewal and The Claim.**
+
+PolicySight acts as a **"Digital Deputy Agent."** It uses the user's full policy terms (SLIP), their driving profile, and real-time market data to give them the knowledge that a human agent would have, minus the commissions and conflict of interest.
+
+**Why this tool doesn't exist yet:**
+*   **Comparators (e.g., NerdWallet):** They tell you the *price* of a quote, but not the *value* of a claim. They cannot compare policies because carriers do not expose granular sub-limits or claims reserves in their APIs.
+*   **Carrier Apps (e.g., State Farm, Geico):** They are biased. They will show you your rate history, but they won't show you what the *other side* of the table is charging your ZIP code.
+*   **Claims Tools (e.g., Lemonade, Zenulet):** They handle the *filing* of a claim, but they do not decode the complexity of your sub-limits against a third-party's liability policy.
+
+PolicySight is the **first tool that connects the Policy, the Premium, and the Claim** into one dashboard.
+
+---
+
+## 2. Problem Statement (The Pain)
+Based on the analysis of current consumer pain points in the US auto insurance landscape:
+
+1.  **The "Apples-to-Oranges" Comparison Trap:** Consumers think they are shopping for "Best Price," but they are unknowingly comparing "Price A" (500/1000/500) against "Price B" (250/500/250). Carriers use this asymmetry to "steer" you into a retention agreement.
+2.  **The Renovation Blind Spot:** 70% of consumers renew with their current carrier, even when a competitor offers a lower rate for the same coverage. Carriers know this and suppress competitive data.
+3.  **The Claims Black Box:** When an accident occurs, the consumer doesn't understand why they are being paid a specific amount. They don't know which sub-limit (Property vs. Liability vs. Medical) applies to which damage item. They are essentially flying blind against the carrier's adjuster.
+4.  **The Lapse Epidemic:** Policyholders often forget to renew, or there is a "gap day" during a switch. This brands them as "High Risk" permanently, inflating their premiums for years. No current tool provides a fail-safe automated bridge.
+
+---
+
+## 3. Target Audience
+*   **Primary:** "Diaper to 60" drivers—consumers with cars who are currently aged 25–55, have comprehensive policies, and rarely get involved in significant claims.
+*   **Secondary:** Consumers with "USDR" (Usage Data Records) who are trying to lower their premiums but lack the leverage to know exactly what they are paying for.
+*   **Tertiary:** Policyholders who have already had a claim and are currently being "investigated" or "raided" by their carrier for a rate increase they didn't anticipate.
+
+---
+
+## 4. Core Features (The Product)
+
+### Module 1: The Policy Decoder ("SLIP Transposer")
+*   **Function:** An OCR-based interface where the user uploads a photo of their Summary of Liability Insurance Policy (SLIP).
+*   **AI Action:** The AI translates the dense legal jargon into plain English.
+    *   *Legal:* "Directors and Officers - Single Car (Limit of Coverage under Deductibles)"
+    *   *Plain English:* "Your car gets a 'stacked' payout if hit by multiple objects, but only for damage over $1,000."
+*   **Differentiation:** Existing tools show you your *bill*, but not your *value*. This tool tells you:
+    *   "Your medical limit is **Low** compared to the national average."
+    *   "Your property limit caps your payout at **$25,000**. If you totaled a car with $40,000 in unrepaired damage, you are underinsured."
+*   **Sell Point:** "See exactly what your money is buying before you pay next month."
+
+### Module 2: The Claims Advocate ("Liability Navigator")
+*   **Function:** A step-by-step interactive guide that walks the user through the claims process.
+*   **The "Does Not Exist" Innovation:** No current tool does **granular sub-limit aggregation** against the counterparty.
+    *   *Scenario:* The user hits another driver.
+    *   *PolicySight Input:* The user uploads their SLIP and the police report.
+    *   *PolicySight Output:* "Your liability limit is $250,000 / $500,000 / $250,000.
+        *   Your medical bill ($50k) is covered under *Your Medical*.
+        *   The other driver's medical bill ($100k) is covered under *Their Medical* (up to their limit).
+        *   **The Other Driver's Liability Limit** covers the repair costs.
+        *   **However:** The other driver's medical limit is $250k, and the bill is $300k. **You are owed the difference, but *they* will fight you on it because their policy has a $250k cap. Here is exactly how you enforce the limit against their insurer."**
+*   **Why this sells:** It gives the consumer a professional-grade defense strategy for free. It removes the intimidation of "hiring a lawyer."
+
+### Module 3: The Rate Trajectory Bot ("Renewal Oracle")
+*   **Function:** Predicts what your insurance premium will be *next year* before you renew.
+*   **The Problem It Solves:** When you renew, carriers will tell you your rate went up 15% "because you filed a claim," ignoring that market-wide rate increases in your state add 10% to everyone's rate. You are being charged a surcharge you don't understand.
+*   **How it Works:**
+    1.  Aggregates your driving profile (via consented DMV data or user input).
+    2.  Compares it against **peer market data** (anonymized ZIP code rate averages from NICB).
+    3.  **Delivers a "Price Forecast":** "Based on your accident history, Carrier A will charge you $15/month next year. Carrier B charges the same, but with a 'loyalty mark' that *does not* apply to you. Switch to Carrier B and you save $400/year."
+*   **Differentiation:** This is not a quote. It is a **prediction**. Existing tools give you a "snapshot" quote. This tool gives you the **future trajectory**.
+
+### Module 4: The Lapse Bridge ("Covr-Shift")
+*   **Function:** An automated fail-safe that prevents coverage gaps during a switch.
+*   **How it Works:**
+    *   User Authorizes a micro-policy (via API integration with a "bridge carrier" network).
+    *   Tool monitors the user's "Renewal Window" (e.g., 30 days).
+    *   If the window passes and no carrier has accepted the user, the tool triggers the bridge policy automatically.
+*   **Sell Point:** "We guarantee no lapse. If we don't get you covered, we will bridge the gap for 30 days at no extra cost."
+
+---
+
+## 5. Technical & Regulatory Architecture
+*   **Data Access (The Hard Part):**
+    *   *Policy Data:* Access SLIPs via user upload (OCR) or carrier APIs (if we can negotiate MOUs with smaller carriers who haven't automated it).
+    *   *Claims Data:* We will build the Claims Advocate using **structured input from the user** (photos, police reports) rather than waiting for the carrier's backend data, which is inaccessible to third parties. We calculate "What *should* be paid" vs. "What *is* being paid."
+*   **Regulatory Compliance:**
+    *   **State Filings:** This is the highest barrier. We must register as a legitimate insurance agent or partner with a licensed agency in each state we operate in.
+    *   **OCL (Online Application Law):** We must handle leads in compliance with state laws regarding how quotes are displayed.
+    *   **Privacy (PIPL/PDPA/GDPR):** Since we handle claims and driving data, we must be HIPAA (if health info is shared) and FINRA compliant.
+*   **Tech Stack:**
+    *   NLP Engine (LLM fine-tuned on insurance policy language for >99% SLIP accuracy).
+    *   Image Recognition (OCR for SLIPs and Claim Photos).
+    *   Predictive Model (Machine Learning model trained on peer rate data).
+    *   Mobile App (iOS/Android) with push notifications for Renewal Windows.
+
+---
+
+## 6. Business Model (Sellability)
+We will use a **Usage-Based Freemium Model**:
+
+1.  **The Hook (Policy Decoder):** Free. "Upload your policy and get the plain English translation." (Drives sign-ups).
+2.  **The Retention (Renewal Oracle):** $29/month subscription. "Know exactly what you will be charged next year and get a low-ball offer."
+3.  **The "Money Shot" (Claims Advocate):** $99 per claim. "Get a professional line-item defense of your claim. Do not pay a lawyer to do what AI can."
+    *   *Marketing angle:* A standard auto lawyer costs $1,500-$5,000. We save them the hassle and cost a fraction.
+4.  **The Upsell (Lapse Bridge):** Free if they renew through our partner network.
+
+---
+
+## 7. Risk Matrix & Mitigations
+
+| Risk | Severity | Impact | Mitigation |
+| :--- | :--- | :--- | :--- |
+| **Carrier Gatekeeping** | **Critical** | Carriers won't share data or API access. | We do not need carrier APIs. We rely on **User-Generated Data (UGD)**. We train the model on user-uploaded SLIPs and police reports. |
+| **Claims Validation** | **Critical** | If the AI "right" claim calculation is wrong, the user loses leverage. | Legal liability must be on the AI provider, not the user. The AI must state "Based on standard industry sub-limits" (i.e., it is informational, not contractual). |
+| **Regulatory Hurdle** | **High** | US states have varying rules about "agent" conduct and lead generation. | Partner with a **National Insurance Agency** (e.g., a captive agency) for the states we want to launch in. Outsource the lead generation to meet compliance. |
+| **User Trust** | **Medium** | Users don't trust "AI" to handle money/claims. | Use a "Human-in-the-Loop" option. If the AI generates a claim strategy, the user can see the confidence score (e.g., "90% confidence this limit applies"). |
+
+---
+
+## 8. Competitive Landscape
+*   **NerdWallet / Compare.com:** Compare *prices* only. Do not compare *coverage value*. Do not help with claims.
+*   **State Farm / Progressive Apps:** Carrier proprietary. Locked into their own product.
+*   **Lemonade / Zenulet:** Handle *new* insurance / simple claims. Do not decode existing complex policies.
+*   **Lloyds of London / InsurTech:** Backend tools for *carriers*. Not available to consumers.
+
+**PolicySight is the only tool that sits at the intersection of:**
+1.  **Decoding** the policy you bought.
+2.  **Advising** on the claim you need to make.
+3.  **Forecasting** the price you will pay next year.
+
+---
+
+## 9. Success Metrics
+*   **Adoption:** >5,000 SLIP uploads per month within Year 1.
+*   **Claims Retention:** 60% of users who upload a policy SLIP eventually purchase a policy through our channel (proven via the "policy decoder" value prop).
+*   **Claims Defense:** 40% of users who use the Claims Advocate report their carrier paid "more" than the first counter-offer they received.
+*   **Retention:** 0% of users with active policies drop their coverage entirely due to a lapse (proof of Lapse Bridge effectiveness).
+
+---
+*End of PRD*
