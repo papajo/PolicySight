@@ -10,18 +10,8 @@ import {
   Card,
   CardContent,
   Divider,
-  LinearProgress,
 } from "@mui/material";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
 import api from "../services/api";
 
 interface ForecastResult {

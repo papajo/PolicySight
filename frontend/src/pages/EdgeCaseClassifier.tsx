@@ -8,8 +8,6 @@ import {
   CircularProgress,
   Alert,
   Chip,
-  Card,
-  CardContent,
   Accordion,
   AccordionSummary,
   AccordionDetails,

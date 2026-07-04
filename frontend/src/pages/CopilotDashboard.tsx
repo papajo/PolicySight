@@ -8,8 +8,6 @@ import {
   Alert,
   Card,
   CardContent,
-  Button,
-  Divider,
   Table,
   TableBody,
   TableCell,
@@ -18,8 +16,6 @@ import {
   TableRow,
 } from "@mui/material";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import ErrorIcon from "@mui/icons-material/Error";
 import api from "../services/api";
 
 interface DashboardData {

@@ -17,7 +17,6 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  Divider,
 } from "@mui/material";
 import api from "../services/api";
 

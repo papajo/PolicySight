@@ -10,8 +10,6 @@ import {
   CssBaseline,
   Chip,
   Avatar,
-  Menu,
-  MenuItem,
   IconButton,
 } from "@mui/material";
 import GavelIcon from "@mui/icons-material/Gavel";
@@ -40,7 +38,7 @@ const App: React.FC = () => {
   const location = useLocation();
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("auth_token"));
   const [userEmail, setUserEmail] = useState<string | null>(localStorage.getItem("user_email"));
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [_anchorEl, _setAnchorEl] = useState<null | HTMLElement>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("auth_token");

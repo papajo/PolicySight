@@ -9,7 +9,6 @@ import {
   CircularProgress,
   Tabs,
   Tab,
-  Divider,
 } from "@mui/material";
 import GavelIcon from "@mui/icons-material/Gavel";
 import { useNavigate } from "react-router-dom";
@@ -42,7 +41,7 @@ const Login: React.FC = () => {
   // Register form
   const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
-  const [regRole, setRegRole] = useState("user");
+  const [regRole, _setRegRole] = useState("user");
 
   const handleLogin = async () => {
     setLoading(true);

@@ -59,7 +59,7 @@ const ClaimsAdvocate: React.FC = () => {
       const response = await api.post("/claims/advocate", formData);
       setResult(response.data);
     } catch (err: any) {
-      setError(err.message || formatApiError(err.response?.data?.detail));
+      setError(err.message || (typeof err.response?.data?.detail === 'string' ? err.response.data.detail : 'An unexpected error occurred'));
     } finally {
       setLoading(false);
     }

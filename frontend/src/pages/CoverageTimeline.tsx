@@ -9,7 +9,6 @@ import {
   Card,
   CardContent,
 } from "@mui/material";
-import TimelineIcon from "@mui/icons-material/Timeline";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
@@ -112,7 +111,6 @@ const CoverageTimeline: React.FC = () => {
       <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
         <Box sx={{ position: "relative", py: 2 }}>
           {data.events.map((event, i) => {
-            const isLeft = i % 2 === 0;
             const colorMap: Record<string, string> = {
               start: "#4caf50",
               end: "#f44336",
