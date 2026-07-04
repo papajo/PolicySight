@@ -41,7 +41,7 @@ const Login: React.FC = () => {
   // Register form
   const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
-  const [regRole, _setRegRole] = useState("user");
+  const regRole = "user";
 
   const handleLogin = async () => {
     setLoading(true);
