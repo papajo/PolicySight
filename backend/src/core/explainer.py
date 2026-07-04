@@ -187,6 +187,25 @@ class CoverageExplainer:
                 missing_info.append(f"{matched_label.replace('_', ' ')} limit was not found in the provided policy text")
                 confidence = "low"
 
+        elif "deductible" in q:
+            parts = []
+            if parsed.collision_deductible:
+                parts.append(f"Collision: {parsed.collision_deductible}")
+            if parsed.comprehensive_deductible:
+                parts.append(f"Comprehensive: {parsed.comprehensive_deductible}")
+            if parts:
+                answer = f"Your deductible depends on the type of claim. {'; '.join(parts)}."
+                if parsed.collision_deductible_source:
+                    citations.append(f"Source: \"{parsed.collision_deductible_source[:200]}\"")
+                if parsed.comprehensive_deductible_source and parsed.comprehensive_deductible_source != parsed.collision_deductible_source:
+                    citations.append(f"Source: \"{parsed.comprehensive_deductible_source[:200]}\"")
+                confidence = "high"
+            else:
+                answer = "I could not detect any deductible information in your policy. Check the declarations page for collision and comprehensive deductible amounts."
+                missing_info.append("collision deductible")
+                missing_info.append("comprehensive deductible")
+                confidence = "low"
+
         elif "gap" in q or "missing" in q or "weak" in q:
             if parsed.coverage_gaps:
                 gaps = [g.detail for g in parsed.coverage_gaps]

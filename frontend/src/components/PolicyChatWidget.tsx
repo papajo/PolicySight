@@ -90,10 +90,12 @@ const PolicyChatWidget: React.FC<Props> = ({ policyText: externalText }) => {
         answer: data,
       };
       setMessages((prev) => [...prev, assistantMsg]);
-    } catch {
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail || err?.message || "Unknown error";
+      console.error("ChatWidget ask error:", detail, err);
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: "I couldn\u2019t find a clear answer in the policy text provided. Try rephrasing or uploading more of your policy." },
+        { role: "assistant", content: `I couldn\u2019t answer that. ${detail}` },
       ]);
     } finally {
       setLoading(false);
