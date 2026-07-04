@@ -23,7 +23,10 @@ from src.core.policy_period import validate_policy_period
 from src.core.vehicle_match import match_vehicle
 from src.core.ocr_confidence import analyze_ocr_confidence
 from src.core.endorsement_analyzer import analyze_endorsements
+from src.core.rag_pipeline import RagPipeline
 from src.core.audit import log_action
+
+RAG = RagPipeline()
 from src.db.base import get_db
 
 router = APIRouter()
@@ -186,7 +189,7 @@ async def explain_coverage(input_data: ExplainRequest):
 async def ask_policy_question(input_data: AskRequest):
     """
     Answer a natural-language question about a policy
-    using only extracted data and known coverage rules. (REQ-002)
+    using extracted data, coverage rules, and RAG-retrieved sections. (REQ-002)
     """
     if not input_data.text or len(input_data.text.strip()) < 20:
         raise HTTPException(status_code=400, detail="Please provide at least 20 characters of policy text.")
@@ -196,6 +199,22 @@ async def ask_policy_question(input_data: AskRequest):
     parsed = PolicyDecoder.parse_policy_text(input_data.text)
     parsed.coverage_gaps = PolicyDecoder.detect_coverage_gaps(parsed)
     result = CoverageExplainer.answer_question(parsed, input_data.question)
+
+    try:
+        doc_id = f"policy_{hash(input_data.text) % 2**31}"
+        RAG.delete_document(doc_id)
+        RAG.ingest(input_data.text, doc_id)
+        retrieved = RAG.retrieve(input_data.question, k=3, doc_id=doc_id)
+        for chunk in retrieved:
+            if chunk.score >= 0.5:
+                citation = f"[RAG: {chunk.section}] {chunk.content[:200]}"
+                if citation not in result.citations:
+                    result.citations.insert(0, citation)
+        if retrieved:
+            result.confidence = "high" if any(c.score >= 0.7 for c in retrieved) else "medium"
+    except Exception:
+        pass
+
     log_action("policy_ask", "policy", f"Q: {input_data.question[:100]} → confidence: {result.confidence}")
     return result
 

@@ -44,3 +44,6 @@ Thumbs.db
 # Uploads
 uploads/
 media/
+
+# Chroma vector DB
+data/chroma_db/
