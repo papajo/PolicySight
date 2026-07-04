@@ -26,6 +26,7 @@ import ErrorIcon from "@mui/icons-material/Error";
 import CoverageExplainerPanel from "./CoverageExplainerPanel";
 import ScenarioChecker from "./ScenarioChecker";
 import { FeedbackButtons } from "./FeedbackLoop";
+import SafeFailurePanel from "../components/SafeFailurePanel";
 import api from "../services/api";
 
 interface CoverageGap {
@@ -69,6 +70,10 @@ interface ParsedPolicy {
   unclear_fields: string[];
   plain_english_summary: string;
   raw_text: string;
+  safe_failure_overall_status: string;
+  safe_failure_assessment: string;
+  safe_failure_required_info: any[];
+  safe_failure_next_actions: any[];
 }
 
 const formatApiError = (detail: unknown): string => {
@@ -217,6 +222,13 @@ const PolicyDecoder: React.FC = () => {
               <FeedbackButtons action="policy_decode" details={`${result.plain_english_summary.slice(0, 200)}`} />
             </CardContent>
           </Card>
+
+          <SafeFailurePanel
+            overall_status={result.safe_failure_overall_status}
+            assessment={result.safe_failure_assessment}
+            required_info={result.safe_failure_required_info}
+            next_actions={result.safe_failure_next_actions}
+          />
 
           <SectionCard title="Coverage Limits">
             <CoverageRow label="Liability" value={result.liability_limit} source={result.liability_source} confidence={result.liability_confidence} />

@@ -81,6 +81,12 @@ class ParsedPolicy(BaseModel):
     plain_english_summary: str = ""
     raw_text: str = ""
 
+    # Safe failure mode (PDF REQ-017)
+    safe_failure_overall_status: str = ""
+    safe_failure_assessment: str = ""
+    safe_failure_required_info: list[dict] = []
+    safe_failure_next_actions: list[dict] = []
+
 
 class PolicyDecoder:
     """

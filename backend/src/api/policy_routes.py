@@ -17,6 +17,7 @@ from src.core.decision import generate_decision, CoverageDecision
 from src.core.edge_cases import classify_edge_cases, EdgeCaseResult
 from src.core.cost_estimator import estimate_costs, CostEstimate
 from src.core.comparison import compare_policies, ComparisonResult
+from src.core.safe_failure import analyze_policy_safety, assess_decision_confidence
 from src.core.audit import log_action
 from src.db.base import get_db
 
@@ -111,6 +112,14 @@ async def _parse_policy(raw_text: str) -> ParsedPolicy:
     merged.raw_text = raw_text
     merged.coverage_gaps = PolicyDecoder.detect_coverage_gaps(merged)
     merged.plain_english_summary = PolicyDecoder.generate_plain_english_summary(merged)
+
+    # Safe failure analysis (PDF REQ-017)
+    safe = analyze_policy_safety(merged)
+    merged.safe_failure_overall_status = safe.overall_status
+    merged.safe_failure_assessment = safe.assessment
+    merged.safe_failure_required_info = [r.model_dump() for r in safe.required_info]
+    merged.safe_failure_next_actions = [a.model_dump() for a in safe.next_actions]
+
     return merged
 
 
@@ -147,7 +156,14 @@ async def explain_coverage(input_data: ExplainRequest):
     parsed = PolicyDecoder.parse_policy_text(input_data.text)
     parsed.coverage_gaps = PolicyDecoder.detect_coverage_gaps(parsed)
     parsed.plain_english_summary = PolicyDecoder.generate_plain_english_summary(parsed)
+
+    safe = analyze_policy_safety(parsed)
     result = CoverageExplainer.explain(parsed)
+    if safe.overall_status != "determinate":
+        result.safe_failure_assessment = safe.assessment
+        result.safe_failure_required_info = [r.model_dump() for r in safe.required_info]
+        result.safe_failure_next_actions = [a.model_dump() for a in safe.next_actions]
+
     log_action("policy_explain", "policy", f"Generated {len(result.explanations)} coverage explanations (confidence: {result.overall_confidence})")
     return result
 
@@ -214,6 +230,15 @@ async def coverage_decision(input_data: DecisionRequest):
     parsed = PolicyDecoder.parse_policy_text(input_data.text)
     parsed.coverage_gaps = PolicyDecoder.detect_coverage_gaps(parsed)
     result = generate_decision(parsed, input_data.claim)
+
+    # Prepend safe failure uncertainty if key coverage types are missing
+    safe = analyze_policy_safety(parsed)
+    if safe.overall_status != "determinate":
+        missing_types = [r.label for r in safe.required_info if r.field in ("liability_limit", "collision_deductible", "medical_limit")]
+        uncertainty = assess_decision_confidence(input_data.claim, missing_types)
+        if uncertainty:
+            result.next_steps.insert(0, uncertainty)
+
     log_action("coverage_decision", "policy", f"Claim: {input_data.claim[:100]} → escalation: {result.escalation_level}, confidence: {result.overall_confidence}")
     return result
 

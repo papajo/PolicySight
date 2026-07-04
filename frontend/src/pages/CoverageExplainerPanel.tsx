@@ -15,6 +15,7 @@ import {
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import QuestionAnswerIcon from "@mui/icons-material/QuestionAnswer";
+import SafeFailurePanel from "../components/SafeFailurePanel";
 import api from "../services/api";
 
 interface CoverageExplanation {
@@ -31,6 +32,9 @@ interface CoverageExplanation {
 interface CoverageExplanationSet {
   explanations: CoverageExplanation[];
   overall_confidence: string;
+  safe_failure_assessment: string;
+  safe_failure_required_info: any[];
+  safe_failure_next_actions: any[];
 }
 
 interface EvidenceAnswer {
@@ -157,6 +161,13 @@ const CoverageExplainerPanel: React.FC<Props> = ({ policyText }) => {
             <Typography variant="h6">Coverage-by-Coverage Explanation</Typography>
             <Chip label={`Overall confidence: ${explanations.overall_confidence}`} size="small" color={confColor(explanations.overall_confidence) as any} />
           </Box>
+
+          <SafeFailurePanel
+            overall_status={explanations.safe_failure_assessment ? "partial" : "determinate"}
+            assessment={explanations.safe_failure_assessment}
+            required_info={explanations.safe_failure_required_info}
+            next_actions={explanations.safe_failure_next_actions}
+          />
 
           {explanations.explanations.map((exp, i) => (
             <Accordion key={i} variant="outlined" sx={{ mb: 1, "&:before": { display: "none" } }}>

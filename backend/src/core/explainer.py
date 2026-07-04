@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 from src.core.policy_decoder import ParsedPolicy
+from src.core.safe_failure import analyze_policy_safety
 
 
 class CoverageExplanation(BaseModel):
@@ -25,6 +26,9 @@ class CoverageExplanationSet(BaseModel):
     """Complete set of explanations for a parsed policy."""
     explanations: list[CoverageExplanation]
     overall_confidence: str
+    safe_failure_assessment: str = ""
+    safe_failure_required_info: list[dict] = []
+    safe_failure_next_actions: list[dict] = []
 
 
 class EvidenceAnswer(BaseModel):
@@ -128,9 +132,13 @@ class CoverageExplainer:
         avg_conf = sum(confidences) / len(confidences) if confidences else 0
         overall = "high" if avg_conf >= 2.5 else "medium" if avg_conf >= 1.5 else "low"
 
+        safe = analyze_policy_safety(parsed)
         return CoverageExplanationSet(
             explanations=explanations,
             overall_confidence=overall,
+            safe_failure_assessment=safe.assessment if safe.overall_status != "determinate" else "",
+            safe_failure_required_info=[r.model_dump() for r in safe.required_info],
+            safe_failure_next_actions=[a.model_dump() for a in safe.next_actions],
         )
 
     @staticmethod
@@ -179,6 +187,14 @@ class CoverageExplainer:
                 missing_info.append(f"{matched_label.replace('_', ' ')} limit was not found in the provided policy text")
                 confidence = "low"
 
+        elif "gap" in q or "missing" in q or "weak" in q:
+            if parsed.coverage_gaps:
+                gaps = [g.detail for g in parsed.coverage_gaps]
+                answer = f"{len(parsed.coverage_gaps)} gap(s) detected: " + " ".join(gaps)
+            else:
+                answer = "No coverage gaps were detected from the extracted limits. Full policy review is still recommended."
+            confidence = "medium"
+
         elif "cover" in q or "am i covered" in q or "do i have" in q:
             # General coverage question without specific type
             found = []
@@ -203,14 +219,6 @@ class CoverageExplainer:
             confidence = "medium"
             if not found:
                 confidence = "low"
-
-        elif "gap" in q or "missing" in q or "weak" in q:
-            if parsed.coverage_gaps:
-                gaps = [g.detail for g in parsed.coverage_gaps]
-                answer = f"{len(parsed.coverage_gaps)} gap(s) detected: " + " ".join(gaps)
-            else:
-                answer = "No coverage gaps were detected from the extracted limits. Full policy review is still recommended."
-            confidence = "medium"
 
         else:
             answer = f"I found information about {len([f for f in [parsed.liability_limit, parsed.medical_limit, parsed.property_limit, parsed.uninsured_motorist_limit] if f])} coverage types in your policy. Try asking about a specific coverage like liability, collision, or rental."
