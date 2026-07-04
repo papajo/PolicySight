@@ -87,6 +87,13 @@ class ParsedPolicy(BaseModel):
     safe_failure_required_info: list[dict] = []
     safe_failure_next_actions: list[dict] = []
 
+    # OCR confidence (FDE Test Case #6)
+    ocr_confidence: str = "high"
+    ocr_issues: list[dict] = []
+
+    # Endorsement conflicts (FDE Test Case #7)
+    endorsement_conflicts: list[dict] = []
+
 
 class PolicyDecoder:
     """

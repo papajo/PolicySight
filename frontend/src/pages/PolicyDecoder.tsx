@@ -74,6 +74,9 @@ interface ParsedPolicy {
   safe_failure_assessment: string;
   safe_failure_required_info: any[];
   safe_failure_next_actions: any[];
+  ocr_confidence: string;
+  ocr_issues: { issue_type: string; sample: string; severity: string; suggestion: string }[];
+  endorsement_conflicts: { coverage_area: string; message: string; severity: string; conflict_type: string }[];
 }
 
 const formatApiError = (detail: unknown): string => {
@@ -230,6 +233,20 @@ const PolicyDecoder: React.FC = () => {
             next_actions={result.safe_failure_next_actions}
           />
 
+          {result.ocr_confidence !== "high" && (
+            <Alert severity={result.ocr_confidence === "low" ? "warning" : "info"} sx={{ mb: 2 }}>
+              <Typography variant="subtitle2">OCR Quality: {result.ocr_confidence.toUpperCase()}</Typography>
+              {result.ocr_issues.slice(0, 3).map((issue, i) => (
+                <Typography key={i} variant="caption" display="block" sx={{ mt: 0.3 }}>
+                  {issue.sample && <span style={{ fontFamily: "monospace", background: "#f0f0f0", padding: "0 4px" }}>{issue.sample}</span>} — {issue.suggestion}
+                </Typography>
+              ))}
+              {result.ocr_issues.length > 3 && (
+                <Typography variant="caption" color="text.secondary">...and {result.ocr_issues.length - 3} more issues</Typography>
+              )}
+            </Alert>
+          )}
+
           <SectionCard title="Coverage Limits">
             <CoverageRow label="Liability" value={result.liability_limit} source={result.liability_source} confidence={result.liability_confidence} />
             <CoverageRow label="Medical Payments" value={result.medical_limit} source={result.medical_source} confidence={result.medical_confidence} />
@@ -283,6 +300,17 @@ const PolicyDecoder: React.FC = () => {
               ))}
               {result.endorsements.map((e, i) => (
                 <Typography key={i} variant="body2" color="info.main" sx={{ mb: 0.5 }}>📝 {e}</Typography>
+              ))}
+            </SectionCard>
+          )}
+
+          {result.endorsement_conflicts && result.endorsement_conflicts.length > 0 && (
+            <SectionCard title="Endorsement Conflicts">
+              {result.endorsement_conflicts.map((c, i) => (
+                <Alert key={i} severity={c.severity === "high" ? "warning" : "info"} sx={{ mb: 1 }}>
+                  <Typography variant="subtitle2" textTransform="capitalize">{c.coverage_area} — {c.conflict_type}</Typography>
+                  <Typography variant="body2">{c.message}</Typography>
+                </Alert>
               ))}
             </SectionCard>
           )}

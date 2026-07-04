@@ -21,6 +21,8 @@ from src.core.comparison import compare_policies, ComparisonResult
 from src.core.safe_failure import analyze_policy_safety, assess_decision_confidence
 from src.core.policy_period import validate_policy_period
 from src.core.vehicle_match import match_vehicle
+from src.core.ocr_confidence import analyze_ocr_confidence
+from src.core.endorsement_analyzer import analyze_endorsements
 from src.core.audit import log_action
 from src.db.base import get_db
 
@@ -122,6 +124,15 @@ async def _parse_policy(raw_text: str) -> ParsedPolicy:
     merged.safe_failure_assessment = safe.assessment
     merged.safe_failure_required_info = [r.model_dump() for r in safe.required_info]
     merged.safe_failure_next_actions = [a.model_dump() for a in safe.next_actions]
+
+    # OCR confidence analysis (FDE Test Case #6)
+    ocr = analyze_ocr_confidence(raw_text)
+    merged.ocr_confidence = ocr.overall_confidence
+    merged.ocr_issues = [i.model_dump() for i in ocr.issues]
+
+    # Endorsement conflict analysis (FDE Test Case #7)
+    conflicts = analyze_endorsements(merged)
+    merged.endorsement_conflicts = [c.model_dump() for c in conflicts]
 
     return merged
 
