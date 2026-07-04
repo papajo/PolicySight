@@ -33,6 +33,7 @@ import StateRules from "./pages/StateRules";
 import FeedbackDashboard from "./pages/FeedbackLoop";
 import PolicyComparison from "./pages/PolicyComparison";
 import CopilotDashboard from "./pages/CopilotDashboard";
+import PolicyChatWidget from "./components/PolicyChatWidget";
 
 const App: React.FC = () => {
   const navigate = useNavigate();
@@ -221,6 +222,8 @@ const App: React.FC = () => {
           />
         </Routes>
       </Container>
+
+      <PolicyChatWidget policyText="" />
 
       <Box
         component="footer"
