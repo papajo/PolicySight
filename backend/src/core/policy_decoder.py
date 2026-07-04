@@ -128,11 +128,13 @@ class PolicyDecoder:
         "L1AB1LITY": "LIABILITY", "LIAB1LITY": "LIABILITY",
         "LNJURY": "INJURY", "M0TORIST": "MOTORIST",
         "PR0PERTY": "PROPERTY", "C0LLISION": "COLLISION",
+        "COLLISI0N": "COLLISION",
         "DEDUCT1BLE": "DEDUCTIBLE", "DEDUCTIB1E": "DEDUCTIBLE",
         "C0MPREHENSIVE": "COMPREHENSIVE",
         "B.L.": "BODILY INJURY",
         "RENTAL REIMBURSEMENT": "RENTAL",
         "R0ADSIDE": "ROADSIDE",
+        "LNCLUDED": "INCLUDED",
         "LOAN/LEASE": "LOAN LEASE",
     }
 
@@ -261,20 +263,22 @@ class PolicyDecoder:
 
     @classmethod
     def _extract_liability(cls, text: str, lines: list[str]) -> tuple[Optional[str], Optional[str], str]:
-        for line in lines:
+        for i, line in enumerate(lines):
             if "LIABILITY" in line and "PROPERTY" not in line:
                 match = cls.COMBINED_LIMIT_RE.search(line)
                 if match:
                     return cls._normalize_money_expression(match.groups()), line, "high"
-        if "LIABILITY" in text:
-            match = cls.COMBINED_LIMIT_RE.search(text)
-            if match:
-                return cls._normalize_money_expression(match.groups()), text[:200], "medium"
+                # Limit often on the next line after coverage name
+                for j in range(i + 1, min(i + 4, len(lines))):
+                    match = cls.COMBINED_LIMIT_RE.search(lines[j])
+                    if match:
+                        return cls._normalize_money_expression(match.groups()), lines[j], "medium"
+                return None, line, "low"
         return None, None, "missing"
 
     @classmethod
     def _extract_uninsured(cls, text: str, lines: list[str]) -> tuple[Optional[str], Optional[str], str]:
-        for line in lines:
+        for i, line in enumerate(lines):
             if "UNINSURED" in line or "UNDERINSURED" in line:
                 match = cls.COMBINED_LIMIT_RE.search(line)
                 if match:
@@ -282,31 +286,48 @@ class PolicyDecoder:
                 single = cls.MONEY_RE.search(line)
                 if single:
                     return cls._normalize_money(single.group(0)), line, "medium"
-        if "UNINSURED" in text or "UNDERINSURED" in text:
-            match = cls.COMBINED_LIMIT_RE.search(text)
-            if match:
-                return cls._normalize_money_expression(match.groups()), text[:200], "low"
+                # Limit often on the next line after coverage name
+                for j in range(i + 1, min(i + 4, len(lines))):
+                    match = cls.COMBINED_LIMIT_RE.search(lines[j])
+                    if match:
+                        return cls._normalize_money_expression(match.groups()), lines[j], "medium"
+                    single = cls.MONEY_RE.search(lines[j])
+                    if single:
+                        return cls._normalize_money(single.group(0)), lines[j], "low"
+                return None, line, "low"
         return None, None, "missing"
 
     @classmethod
     def _extract_field(cls, text: str, lines: list[str], keywords: list[str]) -> tuple[Optional[str], Optional[str], str]:
-        for line in lines:
+        for i, line in enumerate(lines):
             if any(k in line for k in keywords):
-                match = cls.MONEY_RE.search(line)
-                if match:
-                    return cls._normalize_money(match.group(0)), line, "high"
-        for line in lines:
-            if any(k in line for k in keywords):
+                matches = cls.MONEY_RE.findall(line)
+                if matches:
+                    val = cls._normalize_money_expression(matches)
+                    return val, line, "high"
+                # Try next 2 lines (coverage name and limit often on separate lines in OCR output)
+                for j in range(i + 1, min(i + 3, len(lines))):
+                    matches = cls.MONEY_RE.findall(lines[j])
+                    if matches:
+                        val = cls._normalize_money_expression(matches)
+                        return val, lines[j], "medium"
                 return None, line, "low"
         return None, None, "missing"
 
     @classmethod
     def _extract_deductible(cls, lines: list[str], coverage_type: str) -> tuple[Optional[str], Optional[str]]:
-        for line in lines:
-            if coverage_type in line and "DEDUCT" in line:
-                match = cls.MONEY_RE.search(line)
-                if match:
-                    return cls._normalize_money(match.group(0)), line
+        for i, line in enumerate(lines):
+            if coverage_type in line:
+                if "DEDUCT" in line:
+                    match = cls.MONEY_RE.search(line)
+                    if match:
+                        return cls._normalize_money(match.group(0)), line
+                # Deductible often on the next line after coverage name
+                for j in range(i + 1, min(i + 4, len(lines))):
+                    if "DEDUCT" in lines[j]:
+                        match = cls.MONEY_RE.search(lines[j])
+                        if match:
+                            return cls._normalize_money(match.group(0)), lines[j]
         return None, None
 
     @classmethod
