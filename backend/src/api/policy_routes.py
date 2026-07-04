@@ -3,6 +3,7 @@ Policy Decoder API Routes
 Handles SLIP document upload, paste, parsing, explanation, and evidence queries.
 """
 
+from typing import Optional
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -18,6 +19,8 @@ from src.core.edge_cases import classify_edge_cases, EdgeCaseResult
 from src.core.cost_estimator import estimate_costs, CostEstimate
 from src.core.comparison import compare_policies, ComparisonResult
 from src.core.safe_failure import analyze_policy_safety, assess_decision_confidence
+from src.core.policy_period import validate_policy_period
+from src.core.vehicle_match import match_vehicle
 from src.core.audit import log_action
 from src.db.base import get_db
 
@@ -214,6 +217,8 @@ class DecisionRequest(BaseModel):
     """Request model for coverage decision."""
     text: str
     claim: str
+    accident_date: Optional[str] = None
+    accident_vehicle: Optional[str] = None
 
 
 @router.post("/decision", response_model=CoverageDecision)
@@ -230,6 +235,31 @@ async def coverage_decision(input_data: DecisionRequest):
     parsed = PolicyDecoder.parse_policy_text(input_data.text)
     parsed.coverage_gaps = PolicyDecoder.detect_coverage_gaps(parsed)
     result = generate_decision(parsed, input_data.claim)
+
+    # Policy period validation
+    period = validate_policy_period(parsed.effective_date, parsed.expiration_date, input_data.accident_date)
+    if period.status != "no_dates":
+        result.validations.append({
+            "type": "policy_period",
+            "status": period.status,
+            "message": period.message,
+        })
+        if period.status in ("before_period", "after_period"):
+            result.next_steps.insert(0, f"⚠ {period.message}")
+
+    # Vehicle matching
+    policy_vehicles = []
+    if parsed.vehicle_year_make_model:
+        policy_vehicles = [v.strip() for v in parsed.vehicle_year_make_model.split(";") if v.strip()]
+    vehicle = match_vehicle(input_data.accident_vehicle, policy_vehicles)
+    if vehicle.status != "no_claim_vehicle":
+        result.validations.append({
+            "type": "vehicle_match",
+            "status": vehicle.status,
+            "message": vehicle.message,
+        })
+        if vehicle.status == "not_listed":
+            result.next_steps.insert(0, f"⚠ {vehicle.message}")
 
     # Prepend safe failure uncertainty if key coverage types are missing
     safe = analyze_policy_safety(parsed)

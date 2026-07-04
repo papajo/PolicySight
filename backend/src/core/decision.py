@@ -30,6 +30,7 @@ class CoverageDecision(BaseModel):
     escalation_level: str  # auto_adjudicate, supervisor_review, underwriting_review
     escalation_reason: Optional[str] = None
     next_steps: list[str] = []
+    validations: list[dict] = []
 
 
 # Keywords to estimate which coverages a claim description maps to

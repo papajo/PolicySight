@@ -30,6 +30,12 @@ interface CoverageDetermination {
   escalation_reason: string | null;
 }
 
+interface ValidationItem {
+  type: string;
+  status: string;
+  message: string;
+}
+
 interface CoverageDecision {
   claim_summary: string;
   determinations: CoverageDetermination[];
@@ -38,7 +44,13 @@ interface CoverageDecision {
   escalation_level: string;
   escalation_reason: string | null;
   next_steps: string[];
+  validations?: ValidationItem[];
 }
+
+const valSeverity = (s: string) =>
+  s === "within_period" || s === "listed" ? "success"
+    : s === "not_listed" || s === "before_period" || s === "after_period" ? "warning"
+    : "info";
 
 const confColor = (c: string) => c === "high" ? "success" : c === "medium" ? "warning" : "error";
 const escColor = (e: string) => e === "auto_adjudicate" ? "success" : e === "supervisor_review" ? "warning" : "error";
@@ -46,6 +58,8 @@ const escColor = (e: string) => e === "auto_adjudicate" ? "success" : e === "sup
 const DecisionDraft: React.FC = () => {
   const [policyText, setPolicyText] = useState("");
   const [claimDesc, setClaimDesc] = useState("");
+  const [accidentDate, setAccidentDate] = useState("");
+  const [accidentVehicle, setAccidentVehicle] = useState("");
   const [result, setResult] = useState<CoverageDecision | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +69,12 @@ const DecisionDraft: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.post("/policies/decision", { text: policyText, claim: claimDesc });
+      const res = await api.post("/policies/decision", {
+        text: policyText,
+        claim: claimDesc,
+        accident_date: accidentDate || undefined,
+        accident_vehicle: accidentVehicle || undefined,
+      });
       setResult(res.data);
     } catch (err: any) {
       setError(err.response?.data?.detail || "Failed to generate decision.");
@@ -94,6 +113,24 @@ const DecisionDraft: React.FC = () => {
           onChange={(e) => setClaimDesc(e.target.value)}
           sx={{ mb: 2 }}
         />
+        <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+          <TextField
+            fullWidth
+            size="small"
+            label="Accident Date (optional)"
+            placeholder="MM/DD/YYYY"
+            value={accidentDate}
+            onChange={(e) => setAccidentDate(e.target.value)}
+          />
+          <TextField
+            fullWidth
+            size="small"
+            label="Accident Vehicle (optional)"
+            placeholder="e.g. 2018 Ford F-150"
+            value={accidentVehicle}
+            onChange={(e) => setAccidentVehicle(e.target.value)}
+          />
+        </Box>
         <Button variant="contained" size="large" fullWidth onClick={handleGenerate} disabled={!policyText.trim() || !claimDesc.trim() || loading}>
           {loading ? <CircularProgress size={24} /> : "Generate Decision"}
         </Button>
@@ -153,6 +190,18 @@ const DecisionDraft: React.FC = () => {
               </Box>
             ))}
           </Paper>
+
+          {result.validations && result.validations.length > 0 && (
+            <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+              <Typography variant="subtitle1" fontWeight={600} gutterBottom>Claim Validations</Typography>
+              {result.validations.map((v, i) => (
+                <Alert key={i} severity={valSeverity(v.status) as any} sx={{ mb: i < result.validations!.length - 1 ? 1 : 0 }}>
+                  <Typography variant="body2" fontWeight={600}>{v.type.replace("_", " ")}</Typography>
+                  <Typography variant="body2">{v.message}</Typography>
+                </Alert>
+              ))}
+            </Paper>
+          )}
 
           <Paper variant="outlined" sx={{ p: 2 }}>
             <Typography variant="subtitle1" fontWeight={600} gutterBottom>Next Steps</Typography>
