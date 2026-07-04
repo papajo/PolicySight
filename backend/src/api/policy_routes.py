@@ -212,8 +212,9 @@ async def ask_policy_question(input_data: AskRequest):
                     result.citations.insert(0, citation)
         if retrieved:
             result.confidence = "high" if any(c.score >= 0.7 for c in retrieved) else "medium"
-    except Exception:
-        pass
+    except Exception as exc:
+        import logging
+        logging.getLogger("policysight.api").warning("RAG enrichment failed: %s", exc)
 
     log_action("policy_ask", "policy", f"Q: {input_data.question[:100]} → confidence: {result.confidence}")
     return result

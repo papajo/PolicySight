@@ -10,7 +10,6 @@ from pydantic import BaseModel
 
 import chromadb
 from chromadb import Documents, EmbeddingFunction, Embeddings
-from sentence_transformers import SentenceTransformer
 
 
 CHROMA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "data", "chroma_db")
@@ -34,6 +33,7 @@ SECTION_HEADERS = [
 
 class PolicyEmbeddingFunction(EmbeddingFunction):
     def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
+        from sentence_transformers import SentenceTransformer
         self.model = SentenceTransformer(model_name)
 
     def __call__(self, input: Documents) -> Embeddings:
@@ -103,14 +103,22 @@ def _chunk_policy_text(text: str, max_chars: int = 600) -> list[dict]:
 
 class RagPipeline:
     def __init__(self, persist_dir: str = CHROMA_DIR):
-        os.makedirs(persist_dir, exist_ok=True)
-        self.client = chromadb.PersistentClient(path=persist_dir)
-        self.embedding_fn = PolicyEmbeddingFunction()
+        self._persist_dir = persist_dir
+        self._client = None
+        self._embedding_fn = None
+
+    def _ensure(self):
+        if self._client is not None:
+            return
+        os.makedirs(self._persist_dir, exist_ok=True)
+        self._client = chromadb.PersistentClient(path=self._persist_dir)
+        self._embedding_fn = PolicyEmbeddingFunction()
 
     def _get_collection(self):
-        return self.client.get_or_create_collection(
+        self._ensure()
+        return self._client.get_or_create_collection(
             name=COLLECTION_NAME,
-            embedding_function=self.embedding_fn,
+            embedding_function=self._embedding_fn,
             metadata={"hnsw:space": "cosine"},
         )
 
