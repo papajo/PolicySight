@@ -1,5 +1,2 @@
 name = "policysight"
 compatibility_date = "2026-07-04"
-pages_build_command = "npm run build"
-pages_build_output_dir = "dist"
-account_id = "e21f0ff47e0fd82aaed1a7ef5c2dfb7f"
