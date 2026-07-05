@@ -1,6 +1,9 @@
 {
   "framework": "vite",
-  "buildCommand": "tsc && vite build",
+  "buildCommand": "tsc -b && vite build",
   "outputDirectory": "dist",
-  "installCommand": "npm install"
+  "installCommand": "npm ci --no-audit",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }

@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     # Redis (optional, for Celery scheduler)
     redis_url: str = "redis://localhost:6379/0"
 
+    # CORS
+    cors_origins: str = "http://localhost:3000,http://localhost:5173"
+
     # Stripe (placeholder)
     stripe_secret_key: str = "sk_test_placeholder"
     stripe_webhook_secret: str = "whsec_placeholder"
