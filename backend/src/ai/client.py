@@ -29,16 +29,20 @@ class LLMService:
     Deterministic parsing remains the primary path for policy decoding.
     """
 
-    def __init__(self, api_key: str = "", model: str = "gpt-4"):
+    def __init__(self, api_key: str = "", model: str = "gpt-4", base_url: str = ""):
         self.api_key = api_key
         self.model = model
+        self.base_url = base_url
         self._openai = None
 
-        if api_key and api_key != "sk-placeholder":
+        if api_key and api_key != "***":
             try:
                 from openai import AsyncOpenAI
 
-                self._openai = AsyncOpenAI(api_key=api_key)
+                kwargs = {"api_key": api_key}
+                if base_url:
+                    kwargs["base_url"] = base_url
+                self._openai = AsyncOpenAI(**kwargs)
             except Exception:
                 self._openai = None
 

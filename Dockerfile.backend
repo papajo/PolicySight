@@ -1,0 +1,19 @@
+# Backend-only Dockerfile for Fly.io
+FROM python:3.11-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tesseract-ocr \
+    libtesseract-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy full backend source (src/ is required by pyproject.toml setuptools config)
+COPY backend/ .
+
+# Install the package (non-editable for production)
+RUN pip install --no-cache-dir .
+
+EXPOSE 8000
+
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]

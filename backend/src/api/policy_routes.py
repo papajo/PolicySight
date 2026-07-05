@@ -107,7 +107,7 @@ async def _parse_policy(raw_text: str) -> ParsedPolicy:
     parsed = PolicyDecoder.parse_policy_text(raw_text)
 
     settings = get_settings()
-    llm = LLMService(api_key=settings.openai_api_key, model=settings.openai_model)
+    llm = LLMService(api_key=settings.openai_api_key, model=settings.openai_model, base_url=settings.openai_base_url)
     llm_enhanced = await llm.parse_slip(raw_text)
 
     # Merge: prefer deterministic extraction where available, LLM fills gaps

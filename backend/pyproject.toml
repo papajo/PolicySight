@@ -23,6 +23,8 @@ dependencies = [
     "PyMuPDF>=1.23.0",
     "PyPDF2>=3.0.0",
     "pdfminer.six>=20221105",
+    "chromadb>=0.4.0",
+    "sentence-transformers>=2.2.0",
 ]
 
 [build-system]
