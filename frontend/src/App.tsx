@@ -201,26 +201,48 @@ const App: React.FC = () => {
 
           {/* Desktop nav */}
           {isAuthenticated && !isMobile && (
-            <Box sx={{ display: "flex", gap: 0, flexGrow: 1, flexWrap: "wrap" }}>
-              {NAV_ITEMS.map((item) => (
-                <Button
-                  key={item.path}
-                  color="inherit"
-                  component={Link}
-                  to={item.path}
-                  sx={{
-                    fontSize: "0.7rem",
-                    minWidth: "auto",
-                    px: 0.8,
-                    py: 0.8,
-                    whiteSpace: "nowrap",
-                    fontWeight: location.pathname === item.path ? 700 : 400,
-                    borderBottom: location.pathname === item.path ? "2px solid white" : "2px solid transparent",
-                  }}
-                >
-                  {item.label}
-                </Button>
-              ))}
+            <Box sx={{ flexGrow: 1, position: "relative" }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: 0,
+                  overflowX: "auto",
+                  scrollbarWidth: "none",
+                  "&::-webkit-scrollbar": { display: "none" },
+                }}
+              >
+                {NAV_ITEMS.map((item) => (
+                  <Button
+                    key={item.path}
+                    color="inherit"
+                    component={Link}
+                    to={item.path}
+                    sx={{
+                      fontSize: "0.7rem",
+                      minWidth: "auto",
+                      px: 0.8,
+                      py: 0.8,
+                      whiteSpace: "nowrap",
+                      fontWeight: location.pathname === item.path ? 700 : 400,
+                      borderBottom: location.pathname === item.path ? "2px solid white" : "2px solid transparent",
+                    }}
+                  >
+                    {item.label}
+                  </Button>
+                ))}
+              </Box>
+              {/* Fade gradient on right edge */}
+              <Box
+                sx={{
+                  position: "absolute",
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                  width: 40,
+                  background: "linear-gradient(to right, transparent, #1a237e)",
+                  pointerEvents: "none",
+                }}
+              />
             </Box>
           )}
 
