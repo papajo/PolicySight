@@ -20,12 +20,29 @@ const theme = createTheme({
     fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
     h3: {
       fontWeight: 700,
+      fontSize: "2rem",
+      "@media (min-width:600px)": { fontSize: "2.5rem" },
+      "@media (min-width:900px)": { fontSize: "3rem" },
     },
     h4: {
       fontWeight: 600,
+      fontSize: "1.5rem",
+      "@media (min-width:600px)": { fontSize: "1.75rem" },
+      "@media (min-width:900px)": { fontSize: "2.125rem" },
     },
     h5: {
       fontWeight: 600,
+    },
+  },
+  components: {
+    MuiContainer: {
+      styleOverrides: {
+        root: {
+          paddingLeft: 16,
+          paddingRight: 16,
+          "@media (min-width:600px)": { paddingLeft: 24, paddingRight: 24 },
+        },
+      },
     },
   },
 });

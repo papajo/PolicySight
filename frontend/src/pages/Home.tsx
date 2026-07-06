@@ -61,8 +61,8 @@ const Home: React.FC = () => {
   return (
     <Box>
       {/* Hero Section */}
-      <Box sx={{ textAlign: "center", mb: 6, mt: 2 }}>
-        <Typography variant="h3" gutterBottom fontWeight={700}>
+      <Box sx={{ textAlign: "center", mb: { xs: 4, sm: 6 }, mt: 2 }}>
+        <Typography variant="h3" gutterBottom fontWeight={700} sx={{ fontSize: { xs: "1.6rem", sm: "2.2rem", md: "3rem" } }}>
           Your Policy, Decoded.
           <br />
           Your Claim, Defended.
@@ -70,23 +70,27 @@ const Home: React.FC = () => {
         <Typography
           variant="h6"
           color="text.secondary"
-          sx={{ maxWidth: 600, mx: "auto", mb: 3 }}
+          sx={{ maxWidth: 600, mx: "auto", mb: 3, px: { xs: 1, sm: 0 }, fontSize: { xs: "0.9rem", sm: "1.1rem" } }}
         >
           The first neutral, third-party tool that connects your Policy, Premium,
           and Claim into one intelligent dashboard.
         </Typography>
-        <Box sx={{ display: "flex", gap: 2, justifyContent: "center" }}>
+        <Box sx={{ display: "flex", gap: 2, justifyContent: "center", flexDirection: { xs: "column", sm: "row" }, alignItems: "center", px: { xs: 2, sm: 0 } }}>
           <Button
             variant="contained"
             size="large"
+            fullWidth={false}
             onClick={() => navigate("/decoder")}
+            sx={{ width: { xs: "100%", sm: "auto" } }}
           >
             Decode Your Policy
           </Button>
           <Button
             variant="outlined"
             size="large"
+            fullWidth={false}
             onClick={() => navigate("/claims")}
+            sx={{ width: { xs: "100%", sm: "auto" } }}
           >
             Analyze a Claim
           </Button>
@@ -137,32 +141,32 @@ const Home: React.FC = () => {
       </Grid>
 
       {/* Stats Section */}
-      <Paper sx={{ mt: 6, p: 4, textAlign: "center" }}>
-        <Typography variant="h5" gutterBottom>
+      <Paper sx={{ mt: { xs: 4, sm: 6 }, p: { xs: 2, sm: 4 }, textAlign: "center" }}>
+        <Typography variant="h5" gutterBottom sx={{ fontSize: { xs: "1.1rem", sm: "1.5rem" } }}>
           Why PolicySight?
         </Typography>
-        <Grid container spacing={3} sx={{ mt: 1 }}>
+        <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mt: 1 }}>
           <Grid item xs={12} sm={4}>
-            <Typography variant="h4" color="primary.main" fontWeight={700}>
+            <Typography variant="h4" color="primary.main" fontWeight={700} sx={{ fontSize: { xs: "1.5rem", sm: "2.125rem" } }}>
               70%
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: "0.8rem", sm: "0.875rem" } }}>
               of consumers renew blindly without comparing coverage value
             </Typography>
           </Grid>
           <Grid item xs={12} sm={4}>
-            <Typography variant="h4" color="secondary.main" fontWeight={700}>
+            <Typography variant="h4" color="secondary.main" fontWeight={700} sx={{ fontSize: { xs: "1.5rem", sm: "2.125rem" } }}>
               $1,500+
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: "0.8rem", sm: "0.875rem" } }}>
               average legal fee saved by using AI claims advocacy
             </Typography>
           </Grid>
           <Grid item xs={12} sm={4}>
-            <Typography variant="h4" color="warning.main" fontWeight={700}>
+            <Typography variant="h4" color="warning.main" fontWeight={700} sx={{ fontSize: { xs: "1.5rem", sm: "2.125rem" } }}>
               0%
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: "0.8rem", sm: "0.875rem" } }}>
               coverage gaps with our automated Lapse Bridge
             </Typography>
           </Grid>

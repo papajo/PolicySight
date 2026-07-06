@@ -160,13 +160,15 @@ const PolicyDecoder: React.FC = () => {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>Policy Coverage Parser</Typography>
-      <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+      <Typography variant="h4" gutterBottom sx={{ fontSize: { xs: "1.4rem", sm: "1.75rem", md: "2.125rem" } }}>
+        Policy Coverage Parser
+      </Typography>
+      <Typography variant="body1" color="text.secondary" sx={{ mb: { xs: 2, sm: 3 }, fontSize: { xs: "0.85rem", sm: "1rem" } }}>
         Upload a declarations page or paste your policy text for a structured breakdown of limits, exclusions, and gaps — with source citations for every field.
       </Typography>
 
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Tabs value={tab} onChange={(_, v) => { setTab(v); setResult(null); setError(null); }} centered sx={{ mb: 2 }}>
+      <Paper sx={{ p: { xs: 2, sm: 3 }, mb: { xs: 2, sm: 3 } }}>
+        <Tabs value={tab} onChange={(_, v) => { setTab(v); setResult(null); setError(null); }} centered sx={{ mb: 2 }} variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile>
           <Tab label="Upload File" />
           <Tab label="Paste Text" />
         </Tabs>
@@ -174,13 +176,13 @@ const PolicyDecoder: React.FC = () => {
         {tab === 0 && (
           <>
             <Box
-              sx={{ border: "2px dashed", borderColor: file ? "primary.main" : "grey.300", borderRadius: 2, p: 4, textAlign: "center", cursor: "pointer", "&:hover": { borderColor: "primary.main" } }}
+              sx={{ border: "2px dashed", borderColor: file ? "primary.main" : "grey.300", borderRadius: 2, p: { xs: 2, sm: 4 }, textAlign: "center", cursor: "pointer", "&:hover": { borderColor: "primary.main" } }}
               onClick={() => document.getElementById("slip-upload")?.click()}
             >
               <input id="slip-upload" type="file" accept=".pdf,.png,.jpg,.jpeg" hidden onChange={handleFileChange} />
-              <CloudUploadIcon sx={{ fontSize: 48, color: "primary.main", mb: 1 }} />
-              <Typography variant="h6">{file ? file.name : "Drop your SLIP document here or click to browse"}</Typography>
-              <Typography variant="body2" color="text.secondary">Supports PDF, PNG, JPG</Typography>
+              <CloudUploadIcon sx={{ fontSize: { xs: 36, sm: 48 }, color: "primary.main", mb: 1 }} />
+              <Typography variant="h6" sx={{ fontSize: { xs: "0.9rem", sm: "1.25rem" } }}>{file ? file.name : "Drop your SLIP document here or click to browse"}</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>Supports PDF, PNG, JPG</Typography>
             </Box>
             <Button variant="contained" size="large" fullWidth sx={{ mt: 2 }} onClick={handleUpload} disabled={!file || loading}>
               {loading ? <CircularProgress size={24} /> : "Decode My Policy"}

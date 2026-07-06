@@ -11,6 +11,8 @@ import {
   Collapse,
   Fab,
   Zoom,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import ChatIcon from "@mui/icons-material/Chat";
 import CloseIcon from "@mui/icons-material/Close";
@@ -57,6 +59,8 @@ interface Props {
 }
 
 const PolicyChatWidget: React.FC<Props> = ({ policyText: externalText }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [open, setOpen] = useState(false);
   const [policyText, setPolicyText] = useState(externalText || "");
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -113,22 +117,28 @@ const PolicyChatWidget: React.FC<Props> = ({ policyText: externalText }) => {
       <Zoom in={!open}>
         <Fab
           color="primary"
-          sx={{ position: "fixed", bottom: 24, right: 24, zIndex: 1300 }}
+          sx={{
+            position: "fixed",
+            bottom: { xs: 16, sm: 24 },
+            right: { xs: 16, sm: 24 },
+            zIndex: 1300,
+          }}
           onClick={() => setOpen(true)}
         >
           <ChatIcon />
         </Fab>
       </Zoom>
 
-      <Collapse in={open} orientation="horizontal" sx={{ position: "fixed", bottom: 24, right: 24, zIndex: 1300 }}>
+      <Collapse in={open} orientation="horizontal" sx={{ position: "fixed", bottom: { xs: 16, sm: 24 }, right: { xs: 16, sm: 24 }, zIndex: 1300 }}>
         <Paper
           elevation={8}
           sx={{
-            width: 380,
-            height: 600,
+            width: isMobile ? "calc(100vw - 32px)" : 380,
+            height: isMobile ? "calc(100vh - 80px)" : 600,
+            maxWidth: isMobile ? 400 : 380,
             display: "flex",
             flexDirection: "column",
-            borderRadius: 3,
+            borderRadius: isMobile ? 2 : 3,
             overflow: "hidden",
           }}
         >

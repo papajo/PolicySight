@@ -11,9 +11,35 @@ import {
   Chip,
   Avatar,
   IconButton,
+  Drawer,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  useMediaQuery,
+  useTheme,
+  Divider,
 } from "@mui/material";
+import MenuIcon from "@mui/icons-material/Menu";
 import GavelIcon from "@mui/icons-material/Gavel";
 import LogoutIcon from "@mui/icons-material/Logout";
+import HomeIcon from "@mui/icons-material/Home";
+import PolicyIcon from "@mui/icons-material/Description";
+import GavelOutlinedIcon from "@mui/icons-material/GavelOutlined";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import ShieldIcon from "@mui/icons-material/Shield";
+import TimelineIcon from "@mui/icons-material/Timeline";
+import ScienceIcon from "@mui/icons-material/Science";
+import InputIcon from "@mui/icons-material/Input";
+import BalanceIcon from "@mui/icons-material/Balance";
+import AssessmentIcon from "@mui/icons-material/Assessment";
+import BugReportIcon from "@mui/icons-material/BugReport";
+import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+import MapIcon from "@mui/icons-material/Map";
+import FeedbackIcon from "@mui/icons-material/Feedback";
+import CompareIcon from "@mui/icons-material/Compare";
+import SmartToyIcon from "@mui/icons-material/SmartToy";
 import PolicyDecoder from "./pages/PolicyDecoder";
 import ClaimsAdvocate from "./pages/ClaimsAdvocate";
 import Trajectory from "./pages/Trajectory";
@@ -33,17 +59,43 @@ import PolicyComparison from "./pages/PolicyComparison";
 import CopilotDashboard from "./pages/CopilotDashboard";
 import PolicyChatWidget from "./components/PolicyChatWidget";
 
+const NAV_ITEMS = [
+  { label: "Home", path: "/", icon: <HomeIcon /> },
+  { label: "Decoder", path: "/decoder", icon: <PolicyIcon /> },
+  { label: "Claims", path: "/claims", icon: <GavelOutlinedIcon /> },
+  { label: "Forecast", path: "/trajectory", icon: <TrendingUpIcon /> },
+  { label: "Lapse Bridge", path: "/lapse", icon: <ShieldIcon /> },
+  { label: "Timeline", path: "/timeline", icon: <TimelineIcon /> },
+  { label: "Scenarios", path: "/scenario", icon: <ScienceIcon /> },
+  { label: "Claim Intake", path: "/intake", icon: <InputIcon /> },
+  { label: "Decisions", path: "/decision", icon: <BalanceIcon /> },
+  { label: "Audit", path: "/audit", icon: <AssessmentIcon /> },
+  { label: "Edge Cases", path: "/edge-cases", icon: <BugReportIcon /> },
+  { label: "Cost Estimator", path: "/cost-estimator", icon: <AttachMoneyIcon /> },
+  { label: "State Rules", path: "/states", icon: <MapIcon /> },
+  { label: "Feedback", path: "/feedback", icon: <FeedbackIcon /> },
+  { label: "Compare", path: "/compare", icon: <CompareIcon /> },
+  { label: "Copilot", path: "/copilot", icon: <SmartToyIcon /> },
+];
+
 const App: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("auth_token"));
   const [userEmail, setUserEmail] = useState<string | null>(localStorage.getItem("user_email"));
-  const [_anchorEl, _setAnchorEl] = useState<null | HTMLElement>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("auth_token");
     setIsAuthenticated(!!token);
     setUserEmail(localStorage.getItem("user_email"));
+  }, [location.pathname]);
+
+  // Close drawer on route change
+  useEffect(() => {
+    setMobileOpen(false);
   }, [location.pathname]);
 
   const handleLogout = () => {
@@ -55,11 +107,81 @@ const App: React.FC = () => {
     navigate("/login");
   };
 
+  const drawerWidth = 260;
+
+  const drawerContent = (
+    <Box sx={{ width: drawerWidth }}>
+      <Box sx={{ p: 2, display: "flex", alignItems: "center", gap: 1 }}>
+        <GavelIcon color="primary" />
+        <Typography variant="h6" fontWeight={700} color="primary.main">
+          PolicySight
+        </Typography>
+      </Box>
+      <Divider />
+      <List>
+        {NAV_ITEMS.map((item) => (
+          <ListItem key={item.path} disablePadding>
+            <ListItemButton
+              component={Link}
+              to={item.path}
+              selected={location.pathname === item.path}
+              sx={{
+                py: 1.2,
+                "&.Mui-selected": {
+                  backgroundColor: "primary.main",
+                  color: "white",
+                  "&:hover": { backgroundColor: "primary.dark" },
+                  "& .MuiListItemIcon-root": { color: "white" },
+                },
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: 40 }}>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.label} />
+            </ListItemButton>
+          </ListItem>
+        ))}
+      </List>
+      {isAuthenticated && (
+        <>
+          <Divider />
+          <Box sx={{ p: 2 }}>
+            <Chip
+              avatar={<Avatar sx={{ width: 28, height: 28 }}>{userEmail?.[0]?.toUpperCase() || "U"}</Avatar>}
+              label={userEmail || "User"}
+              variant="outlined"
+              size="small"
+              sx={{ maxWidth: "100%" }}
+            />
+            <Button
+              fullWidth
+              startIcon={<LogoutIcon />}
+              onClick={handleLogout}
+              sx={{ mt: 1.5, justifyContent: "flex-start" }}
+              color="error"
+            >
+              Logout
+            </Button>
+          </Box>
+        </>
+      )}
+    </Box>
+  );
+
   return (
     <>
       <CssBaseline />
       <AppBar position="sticky" elevation={1}>
         <Toolbar>
+          {isAuthenticated && (
+            <IconButton
+              color="inherit"
+              edge="start"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              sx={{ mr: 1 }}
+            >
+              <MenuIcon />
+            </IconButton>
+          )}
           <GavelIcon sx={{ mr: 1 }} />
           <Typography
             variant="h6"
@@ -70,78 +192,51 @@ const App: React.FC = () => {
               color: "inherit",
               fontWeight: 700,
               letterSpacing: 1,
-              mr: 3,
+              mr: 2,
+              fontSize: { xs: "0.95rem", sm: "1.1rem" },
             }}
           >
             PolicySight
           </Typography>
 
-          {isAuthenticated && (
-            <Box sx={{ display: "flex", gap: 1, flexGrow: 1 }}>
-              <Button color="inherit" component={Link} to="/">
-                Home
-              </Button>
-              <Button color="inherit" component={Link} to="/decoder">
-                Decoder
-              </Button>
-              <Button color="inherit" component={Link} to="/claims">
-                Claims
-              </Button>
-              <Button color="inherit" component={Link} to="/trajectory">
-                Forecast
-              </Button>
-              <Button color="inherit" component={Link} to="/lapse">
-                Lapse Bridge
-              </Button>
-              <Button color="inherit" component={Link} to="/timeline">
-                Timeline
-              </Button>
-              <Button color="inherit" component={Link} to="/scenario">
-                Scenarios
-              </Button>
-              <Button color="inherit" component={Link} to="/intake">
-                Claim Intake
-              </Button>
-              <Button color="inherit" component={Link} to="/decision">
-                Decisions
-              </Button>
-              <Button color="inherit" component={Link} to="/audit">
-                Audit
-              </Button>
-              <Button color="inherit" component={Link} to="/edge-cases">
-                Edge Cases
-              </Button>
-              <Button color="inherit" component={Link} to="/cost-estimator">
-                Cost Estimator
-              </Button>
-              <Button color="inherit" component={Link} to="/states">
-                State Rules
-              </Button>
-              <Button color="inherit" component={Link} to="/feedback">
-                Feedback
-              </Button>
-              <Button color="inherit" component={Link} to="/compare">
-                Compare
-              </Button>
-              <Button color="inherit" component={Link} to="/copilot">
-                Copilot
-              </Button>
+          {/* Desktop nav */}
+          {isAuthenticated && !isMobile && (
+            <Box sx={{ display: "flex", gap: 0.5, flexGrow: 1, overflow: "auto" }}>
+              {NAV_ITEMS.map((item) => (
+                <Button
+                  key={item.path}
+                  color="inherit"
+                  component={Link}
+                  to={item.path}
+                  sx={{
+                    fontSize: "0.78rem",
+                    minWidth: "auto",
+                    px: 1.2,
+                    whiteSpace: "nowrap",
+                    fontWeight: location.pathname === item.path ? 700 : 400,
+                    borderBottom: location.pathname === item.path ? "2px solid white" : "2px solid transparent",
+                  }}
+                >
+                  {item.label}
+                </Button>
+              ))}
             </Box>
           )}
 
-          {!isAuthenticated && (
-            <Box sx={{ flexGrow: 1 }} />
-          )}
+          {isAuthenticated && isMobile && <Box sx={{ flexGrow: 1 }} />}
+          {!isAuthenticated && <Box sx={{ flexGrow: 1 }} />}
 
           {isAuthenticated ? (
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Chip
-                avatar={<Avatar>{userEmail?.[0]?.toUpperCase() || "U"}</Avatar>}
-                label={userEmail || "User"}
-                variant="outlined"
-                size="small"
-                sx={{ color: "white", borderColor: "rgba(255,255,255,0.5)" }}
-              />
+              {!isMobile && (
+                <Chip
+                  avatar={<Avatar>{userEmail?.[0]?.toUpperCase() || "U"}</Avatar>}
+                  label={userEmail || "User"}
+                  variant="outlined"
+                  size="small"
+                  sx={{ color: "white", borderColor: "rgba(255,255,255,0.5)" }}
+                />
+              )}
               <IconButton color="inherit" onClick={handleLogout} size="small">
                 <LogoutIcon />
               </IconButton>
@@ -154,7 +249,23 @@ const App: React.FC = () => {
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      {/* Mobile Drawer */}
+      {isAuthenticated && (
+        <Drawer
+          variant="temporary"
+          open={mobileOpen}
+          onClose={() => setMobileOpen(false)}
+          ModalProps={{ keepMounted: true }}
+          sx={{
+            display: { xs: "block", md: "none" },
+            "& .MuiDrawer-paper": { boxSizing: "border-box", width: drawerWidth },
+          }}
+        >
+          {drawerContent}
+        </Drawer>
+      )}
+
+      <Container maxWidth="lg" sx={{ mt: { xs: 2, sm: 4 }, mb: { xs: 2, sm: 4 }, px: { xs: 1.5, sm: 3 } }}>
         <Routes>
           <Route path="/" element={isAuthenticated ? <Home /> : <Login />} />
           <Route path="/login" element={<Login />} />
@@ -226,13 +337,14 @@ const App: React.FC = () => {
       <Box
         component="footer"
         sx={{
-          py: 3,
+          py: { xs: 2, sm: 3 },
           mt: "auto",
           backgroundColor: "background.paper",
           textAlign: "center",
+          px: 2,
         }}
       >
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
           PolicySight — Your Policy, Decoded. Your Claim, Defended.
         </Typography>
       </Box>
