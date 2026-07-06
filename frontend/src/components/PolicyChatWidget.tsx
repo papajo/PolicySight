@@ -122,13 +122,59 @@ const QUICK_ACTIONS: Record<string, string[]> = {
   ],
 };
 
+const NAV_TARGETS: Array<{ keywords: string[]; route: string }> = [
+  { keywords: ["policy decoder", "decoder", "decode", "upload"], route: "/decoder" },
+  { keywords: ["claims advocate", "claims", "claim"], route: "/claims" },
+  { keywords: ["rate forecast", "forecast", "trajectory"], route: "/trajectory" },
+  { keywords: ["lapse bridge", "lapse", "coverage gap"], route: "/lapse" },
+  { keywords: ["timeline", "history"], route: "/timeline" },
+  { keywords: ["scenario checker", "scenario", "what if"], route: "/scenario" },
+  { keywords: ["claim intake", "intake"], route: "/intake" },
+  { keywords: ["decision draft", "decision"], route: "/decision" },
+  { keywords: ["audit trail", "audit"], route: "/audit" },
+  { keywords: ["edge cases", "edge case", "rideshare", "borrowed my car"], route: "/edge-cases" },
+  { keywords: ["cost estimator", "out of pocket", "deductible estimate"], route: "/cost-estimator" },
+  { keywords: ["state rules", "state minimum", "no-fault"], route: "/states" },
+  { keywords: ["policy comparison", "compare", "comparison"], route: "/compare" },
+  { keywords: ["copilot dashboard", "copilot", "dashboard"], route: "/copilot" },
+];
+
+function findNavigationTarget(query: string, currentPath: string): string | undefined {
+  const q = query.toLowerCase();
+  const wantsNavigation = ["take me", "go to", "open", "show me", "navigate", "send me", "start", "launch"].some((phrase) => q.includes(phrase));
+  if (!wantsNavigation) return undefined;
+
+  return NAV_TARGETS.find((target) => target.route !== currentPath && target.keywords.some((keyword) => q.includes(keyword)))?.route;
+}
+
+function MessageContent({ content }: { content: string }) {
+  const renderInline = (line: string) =>
+    line.split(/(\*\*[^*]+\*\*)/g).map((part, index) => {
+      if (part.startsWith("**") && part.endsWith("**")) {
+        return <strong key={index}>{part.slice(2, -2)}</strong>;
+      }
+      return <React.Fragment key={index}>{part}</React.Fragment>;
+    });
+
+  return (
+    <>
+      {content.split("\n").map((line, index, lines) => (
+        <React.Fragment key={`${index}-${line}`}>
+          {renderInline(line)}
+          {index < lines.length - 1 && <br />}
+        </React.Fragment>
+      ))}
+    </>
+  );
+}
+
 // ── Local fallback responses (used when backend chat endpoint is unavailable) ──
 
 function getLocalFallback(query: string, currentPath: string): string {
   const q = query.toLowerCase();
 
   // Feature explanations
-  if (q.includes("what can you do") || q.includes("what do you do") || q.includes("help")) {
+  if (q.includes("what can you do") || q.includes("what do you do")) {
     return (
       "I'm PolicySight Assistant! Here's what I can help with:\n\n" +
       "**Policy Decoder** — Upload or paste your SLIP document for a plain-English breakdown of coverages, limits, and exclusions.\n\n" +
@@ -153,12 +199,12 @@ function getLocalFallback(query: string, currentPath: string): string {
 
   if (q.includes("safe") || q.includes("privacy") || q.includes("data")) {
     return (
-      "Your data is protected:\n\n" +
-      "• **Encrypted in transit** (TLS 1.3) and at rest\n" +
-      "• **Never shared** with third parties or insurance companies\n" +
-      "• **SOC 2 compliant** infrastructure\n" +
-      "• **You control** your data — delete anytime from Settings\n\n" +
-      "Policy analysis happens securely in our environment."
+      "PolicySight is designed to keep insurance help focused on the information needed for the task.\n\n" +
+      "A few practical tips:\n" +
+      "• Upload only the policy or claim details needed for analysis\n" +
+      "• Avoid adding unrelated personal or financial information\n" +
+      "• Use the product privacy policy or support team for exact retention and deletion guarantees\n\n" +
+      "I can still explain how a feature works without you sharing a document."
     );
   }
 
@@ -214,27 +260,13 @@ function getLocalFallback(query: string, currentPath: string): string {
     );
   }
 
-  if (q.includes("navigate") || q.includes("take me") || q.includes("go to")) {
-    const navMap: Record<string, string> = {
-      decoder: "I'll take you to the **Policy Decoder**!",
-      decode: "I'll take you to the **Policy Decoder**!",
-      claims: "Heading to the **Claims Advocate**!",
-      claim: "Heading to the **Claims Advocate**!",
-      forecast: "Taking you to the **Rate Forecast**!",
-      rate: "Taking you to the **Rate Forecast**!",
-      trajectory: "Taking you to the **Rate Forecast**!",
-      scenario: "Going to the **Scenario Checker**!",
-      intake: "Let's go to **Claim Intake**!",
-      decision: "Heading to **Decision Draft**!",
-      compare: "Going to **Policy Comparison**!",
-      states: "Taking you to **State Rules**!",
-      cost: "Going to **Cost Estimator**!",
-      edge: "Heading to **Edge Cases**!",
-    };
-    for (const [key, msg] of Object.entries(navMap)) {
-      if (q.includes(key)) return msg;
-    }
-    return "Which page would you like to go to? I can navigate you to the Decoder, Claims, Forecast, and more.";
+  if (findNavigationTarget(query, currentPath)) {
+    const route = findNavigationTarget(query, currentPath)!;
+    return `I can take you to **${PAGE_INFO[route]?.name || route}**.`;
+  }
+
+  if (["navigate", "take me", "go to", "open", "show me"].some((phrase) => q.includes(phrase))) {
+    return "Which page would you like to go to? I can navigate you to Decoder, Claims, Forecast, Lapse Bridge, Scenario Checker, Cost Estimator, State Rules, Compare, and Copilot.";
   }
 
   // Default
@@ -331,6 +363,7 @@ const PolicyChatWidget: React.FC<Props> = ({ currentPath }) => {
     setMessages((prev) => [...prev, userMsg]);
 
     try {
+      const navTarget = findNavigationTarget(text, path);
       const res = await api.post("/chat", {
         messages: [...messages, userMsg].map((m) => ({ role: m.role, content: m.content })),
         context: { page: path },
@@ -339,22 +372,22 @@ const PolicyChatWidget: React.FC<Props> = ({ currentPath }) => {
       const assistantMsg: ChatMessage = {
         role: "assistant",
         content: data.reply,
-        action: data.action,
-        actionTarget: data.action_target,
+        action: data.action || (navTarget ? "navigate" : undefined),
+        actionTarget: data.action_target || navTarget,
       };
       setMessages((prev) => [...prev, assistantMsg]);
-    } catch (err: any) {
-      // If the chat endpoint isn't available (404), use local fallback
-      if (err?.response?.status === 404 || err?.response?.status === 503) {
-        const fallback = getLocalFallback(text, path);
-        setMessages((prev) => [...prev, { role: "assistant", content: fallback }]);
-      } else {
-        const detail = err?.response?.data?.detail || err?.message || "Unknown error";
-        setMessages((prev) => [
-          ...prev,
-          { role: "assistant", content: `I couldn't process that. ${detail}` },
-        ]);
-      }
+    } catch {
+      const navTarget = findNavigationTarget(text, path);
+      const fallback = getLocalFallback(text, path);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: fallback,
+          action: navTarget ? "navigate" : undefined,
+          actionTarget: navTarget,
+        },
+      ]);
     } finally {
       setLoading(false);
     }
@@ -531,7 +564,7 @@ const PolicyChatWidget: React.FC<Props> = ({ currentPath }) => {
                         lineHeight: 1.5,
                       }}
                     >
-                      {msg.content}
+                      <MessageContent content={msg.content} />
                     </Typography>
                   </Paper>
 

@@ -172,6 +172,10 @@ class PolicyDecoder:
             "why_it_matters": "Without medical payments coverage, your health insurance and out-of-pocket costs cover accident injuries.",
             "consequence": "Could lead to significant medical bills not covered by health plans.",
         },
+        "low_medical": {
+            "why_it_matters": "Low medical payments limits may not cover major ambulance or emergency room bills.",
+            "consequence": "You could be personally responsible for medical bills exceeding your limit.",
+        },
     }
 
     @classmethod
@@ -448,6 +452,19 @@ class PolicyDecoder:
                 why_it_matters=info["why_it_matters"],
                 potential_consequence=info["consequence"],
             ))
+        else:
+            try:
+                val = int(parsed.medical_limit.replace("$", "").replace(",", ""))
+                if val < 50000:
+                    info = PolicyDecoder.GAP_DESCRIPTIONS["low_medical"]
+                    gaps.append(CoverageGap(
+                        field="medical_limit",
+                        detail=f"Medical limit of ${val:,} is below recommended $50,000.",
+                        why_it_matters=info["why_it_matters"],
+                        potential_consequence=info["consequence"],
+                    ))
+            except (ValueError, AttributeError):
+                pass
 
         if not parsed.roadside_assistance:
             info = PolicyDecoder.GAP_DESCRIPTIONS.get("missing_roadside", {

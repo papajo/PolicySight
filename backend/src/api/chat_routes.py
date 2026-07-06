@@ -4,14 +4,16 @@ Handles conversational queries about insurance, the app, and guidance.
 Context-aware: adapts responses based on the page the user is viewing.
 """
 
-from fastapi import APIRouter, Depends
-from pydantic import BaseModel
-from sqlalchemy.orm import Session
+import logging
 from typing import Optional
 
-from src.db.base import get_db
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel
+
 from src.db.models import User
 from src.core.auth import get_current_user_optional
+
+logger = logging.getLogger("policysight.chat")
 
 router = APIRouter()
 
@@ -168,7 +170,7 @@ GENERAL_SYSTEM = (
 @router.post("", response_model=ChatResponse)
 async def chat(
     request: ChatRequest,
-    current_user: User = Depends(get_current_user_optional),
+    _current_user: User = Depends(get_current_user_optional),
 ):
     """
     General-purpose chat endpoint.
@@ -187,51 +189,61 @@ async def chat(
 
     # ── Intent detection (no LLM needed) ──
     nav_routes = {
+        "policy decoder": "/decoder",
         "decoder": "/decoder",
         "decode": "/decoder",
-        "policy decoder": "/decoder",
         "upload": "/decoder",
+        "claims advocate": "/claims",
         "claims": "/claims",
         "claim": "/claims",
-        "advocate": "/claims",
         "file a claim": "/claims",
+        "rate forecast": "/trajectory",
         "forecast": "/trajectory",
-        "rate": "/trajectory",
-        "premium": "/trajectory",
         "trajectory": "/trajectory",
+        "lapse bridge": "/lapse",
         "lapse": "/lapse",
-        "gap": "/lapse",
-        "sr-22": "/lapse",
+        "coverage gap": "/lapse",
         "timeline": "/timeline",
-        "history": "/timeline",
+        "scenario checker": "/scenario",
         "scenario": "/scenario",
-        "what if": "/scenario",
+        "claim intake": "/intake",
         "intake": "/intake",
+        "decision draft": "/decision",
         "decision": "/decision",
-        "coverage decision": "/decision",
+        "audit trail": "/audit",
         "audit": "/audit",
-        "log": "/audit",
+        "edge cases": "/edge-cases",
         "edge case": "/edge-cases",
-        "rideshare": "/edge-cases",
-        "excluded driver": "/edge-cases",
-        "cost": "/cost-estimator",
+        "cost estimator": "/cost-estimator",
         "out of pocket": "/cost-estimator",
-        "estimate": "/cost-estimator",
-        "state": "/states",
+        "state rules": "/states",
+        "policy comparison": "/compare",
         "compare": "/compare",
-        "comparison": "/compare",
+        "copilot dashboard": "/copilot",
         "copilot": "/copilot",
-        "dashboard": "/copilot",
     }
+    navigation_phrases = (
+        "take me",
+        "go to",
+        "open",
+        "show me",
+        "navigate",
+        "send me",
+        "start",
+        "launch",
+        "bring me",
+    )
+    wants_navigation = any(phrase in user_lower for phrase in navigation_phrases)
 
-    for keyword, route in nav_routes.items():
-        if keyword in user_lower and route != page:
-            feature_name = PAGE_CONTEXT.get(route, {}).get("name", route)
-            return ChatResponse(
-                reply=f"I see you're asking about something related to **{feature_name}**. Would you like me to take you there?",
-                action="navigate",
-                action_target=route,
-            )
+    if wants_navigation:
+        for keyword, route in nav_routes.items():
+            if keyword in user_lower and route != page:
+                feature_name = PAGE_CONTEXT.get(route, {}).get("name", route)
+                return ChatResponse(
+                    reply=f"I can take you to **{feature_name}**.",
+                    action="navigate",
+                    action_target=route,
+                )
 
     # ── Quick answers (no LLM needed) ──
     quick_answers = {
@@ -239,7 +251,7 @@ async def chat(
         "how does this work": "PolicySight analyzes your insurance policy (SLIP document), explains coverages in plain English, helps you advocate for fair claim settlements, and predicts future premium trends. Upload your policy or paste the text to get started.",
         "what can you do": "I can help you with:\n\n• **Policy Decoder** — Upload your SLIP document for a plain-English breakdown\n• **Claims Advocate** — Get sub-limit valuations and fair settlement guidance\n• **Rate Forecast** — Predict next year's premium and get Stay/Switch advice\n• **Scenario Checker** — Test hypothetical situations against your policy\n• **Cost Estimator** — Calculate out-of-pocket costs for a claim\n• **Policy Comparison** — Compare two policies side-by-side\n\nWhich would you like to explore?",
         "is this free": "PolicySight offers a free tier for basic policy analysis. Advanced features like claims advocacy and rate forecasting may require a subscription. Check the Copilot Dashboard for current plan details.",
-        "is my data safe": "Yes. PolicySight encrypts your data in transit and at rest. Your policy documents are processed securely and are never shared with third parties. We follow SOC 2 and insurance industry compliance standards.",
+        "is my data safe": "PolicySight is designed to minimize unnecessary data sharing. Your requests are sent to the PolicySight backend for processing, and you should avoid uploading information that is not needed for the task. For exact retention, deletion, and compliance guarantees, check the product privacy policy or ask the PolicySight team.",
         "who made this": "PolicySight is built by a team passionate about making insurance transparent and accessible. We combine AI technology with insurance expertise to help consumers make informed decisions.",
     }
 
@@ -259,14 +271,13 @@ async def chat(
             for msg in request.messages:
                 api_messages.append({"role": msg.role, "content": msg.content})
 
-            response = await llm.client.chat.completions.create(
-                model=llm.model,
-                messages=api_messages,
+            reply = await llm.chat(
+                api_messages,
                 max_tokens=500,
                 temperature=0.7,
             )
-
-            reply = response.choices[0].message.content or "I'm not sure how to help with that."
+            if not reply:
+                reply = "I'm not sure how to help with that."
 
             # Detect navigation intent in the response
             action = None
@@ -279,8 +290,8 @@ async def chat(
 
             return ChatResponse(reply=reply, action=action, action_target=target)
 
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("LLM chat response failed; using deterministic fallback: %s", exc)
 
     # ── Fallback response ──
     page_name = page_info.get("name", "this page")
@@ -294,8 +305,8 @@ async def chat(
             f"• \"How does the policy decoder work?\"\n"
             f"• \"What if I'm in a car accident?\"\n"
             f"• \"Help me file a claim\"\n\n"
-            f"For the best experience, configure an OpenAI API key in your `.env` file "
-            f"to enable full conversational AI."
+            f"For specific claim decisions or legal advice, please confirm details with "
+            f"a licensed insurance professional or your carrier."
         )
     )
 
