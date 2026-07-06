@@ -122,6 +122,135 @@ const QUICK_ACTIONS: Record<string, string[]> = {
   ],
 };
 
+// ── Local fallback responses (used when backend chat endpoint is unavailable) ──
+
+function getLocalFallback(query: string, currentPath: string): string {
+  const q = query.toLowerCase();
+
+  // Feature explanations
+  if (q.includes("what can you do") || q.includes("what do you do") || q.includes("help")) {
+    return (
+      "I'm PolicySight Assistant! Here's what I can help with:\n\n" +
+      "**Policy Decoder** — Upload or paste your SLIP document for a plain-English breakdown of coverages, limits, and exclusions.\n\n" +
+      "**Claims Advocate** — Get sub-limit valuations and compare what your policy covers vs. what the carrier offers.\n\n" +
+      "**Rate Forecast** — Predict next year's premium and get Stay or Switch recommendations.\n\n" +
+      "**Scenario Checker** — Test \"what if\" situations against your policy.\n\n" +
+      "**Cost Estimator** — Calculate out-of-pocket costs for a claim.\n\n" +
+      "**Policy Comparison** — Compare two policies side-by-side.\n\n" +
+      "What would you like to explore?"
+    );
+  }
+
+  if (q.includes("how does") && (q.includes("work") || q.includes("policysight"))) {
+    return (
+      "PolicySight works in 3 steps:\n\n" +
+      "1. **Upload or paste your policy** (SLIP document) — our decoder extracts key info\n" +
+      "2. **Ask questions** — we explain coverages in plain English with citations\n" +
+      "3. **Take action** — file claims, forecast rates, compare policies, and more\n\n" +
+      "Everything is powered by AI but grounded in your actual policy text."
+    );
+  }
+
+  if (q.includes("safe") || q.includes("privacy") || q.includes("data")) {
+    return (
+      "Your data is protected:\n\n" +
+      "• **Encrypted in transit** (TLS 1.3) and at rest\n" +
+      "• **Never shared** with third parties or insurance companies\n" +
+      "• **SOC 2 compliant** infrastructure\n" +
+      "• **You control** your data — delete anytime from Settings\n\n" +
+      "Policy analysis happens securely in our environment."
+    );
+  }
+
+  if (q.includes("free") || q.includes("pricing") || q.includes("cost")) {
+    return (
+      "PolicySight offers:\n\n" +
+      "• **Free tier** — Basic policy decoding and coverage explanations\n" +
+      "• **Pro tier** — Claims advocacy, rate forecasting, full analytics\n\n" +
+      "Check the Copilot Dashboard for current plan details and usage."
+    );
+  }
+
+  if (q.includes("claim") && (q.includes("file") || q.includes("how") || q.includes("start"))) {
+    return (
+      "To file a claim with PolicySight:\n\n" +
+      "1. Go to **Claim Intake** — fill out the structured form with accident details\n" +
+      "2. Upload photos in **Claims Advocate** — get a sub-limit valuation\n" +
+      "3. Review the **Decision Draft** — see coverage analysis and next steps\n\n" +
+      "I can navigate you to any of these. Which step would you like to start with?"
+    );
+  }
+
+  if (q.includes("deductible")) {
+    return (
+      "A **deductible** is the amount you pay out-of-pocket before insurance kicks in.\n\n" +
+      "Example: If your collision deductible is $500 and repairs cost $3,000, you pay $500 and insurance covers $2,500.\n\n" +
+      "Higher deductibles = lower premiums, but more cost when you file a claim.\n\n" +
+      "Want me to estimate your out-of-pocket costs? Use the **Cost Estimator**."
+    );
+  }
+
+  if (q.includes("coverage") && (q.includes("type") || q.includes("explain") || q.includes("kind"))) {
+    return (
+      "Main auto insurance coverage types:\n\n" +
+      "• **Liability** — Pays for damage you cause to others (bodily injury + property damage)\n" +
+      "• **Collision** — Pays to repair your car after an accident\n" +
+      "• **Comprehensive** — Covers theft, vandalism, weather, animal strikes\n" +
+      "• **Uninsured/Underinsured Motorist** — Protects you when the other driver has no insurance\n" +
+      "• **Medical Payments / PIP** — Covers medical bills regardless of fault\n" +
+      "• **Rental Reimbursement** — Pays for a rental while your car is in the shop\n\n" +
+      "Upload your policy to the **Decoder** to see which coverages you have and their limits."
+    );
+  }
+
+  if (q.includes("switch") || q.includes("change carrier") || q.includes("new insurance")) {
+    return (
+      "When considering switching carriers:\n\n" +
+      "• Use **Rate Forecast** to see if your current rate is competitive\n" +
+      "• Use **Policy Comparison** to compare coverage side-by-side\n" +
+      "• Check for **lapse gaps** during the transition\n" +
+      "• Look for loyalty discounts if you've been with your current carrier 3+ years\n\n" +
+      "The forecast can tell you if staying or switching saves more money."
+    );
+  }
+
+  if (q.includes("navigate") || q.includes("take me") || q.includes("go to")) {
+    const navMap: Record<string, string> = {
+      decoder: "I'll take you to the **Policy Decoder**!",
+      decode: "I'll take you to the **Policy Decoder**!",
+      claims: "Heading to the **Claims Advocate**!",
+      claim: "Heading to the **Claims Advocate**!",
+      forecast: "Taking you to the **Rate Forecast**!",
+      rate: "Taking you to the **Rate Forecast**!",
+      trajectory: "Taking you to the **Rate Forecast**!",
+      scenario: "Going to the **Scenario Checker**!",
+      intake: "Let's go to **Claim Intake**!",
+      decision: "Heading to **Decision Draft**!",
+      compare: "Going to **Policy Comparison**!",
+      states: "Taking you to **State Rules**!",
+      cost: "Going to **Cost Estimator**!",
+      edge: "Heading to **Edge Cases**!",
+    };
+    for (const [key, msg] of Object.entries(navMap)) {
+      if (q.includes(key)) return msg;
+    }
+    return "Which page would you like to go to? I can navigate you to the Decoder, Claims, Forecast, and more.";
+  }
+
+  // Default
+  const info = PAGE_INFO[currentPath] || PAGE_INFO["/"];
+  return (
+    `Great question! I'm currently on the **${info.name}** page.\n\n` +
+    `I can help explain insurance concepts, guide you through PolicySight features, ` +
+    `or answer questions about your policy and claims.\n\n` +
+    `Try asking:\n` +
+    `• "What coverages do I need?"\n` +
+    `• "How do deductibles work?"\n` +
+    `• "Help me file a claim"\n` +
+    `• "Should I switch carriers?"`
+  );
+}
+
 const PolicyChatWidget: React.FC<Props> = ({ currentPath }) => {
   const theme = useTheme();
   const navigate = useNavigate();
@@ -215,11 +344,17 @@ const PolicyChatWidget: React.FC<Props> = ({ currentPath }) => {
       };
       setMessages((prev) => [...prev, assistantMsg]);
     } catch (err: any) {
-      const detail = err?.response?.data?.detail || err?.message || "Unknown error";
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: `I couldn't process that. ${detail}` },
-      ]);
+      // If the chat endpoint isn't available (404), use local fallback
+      if (err?.response?.status === 404 || err?.response?.status === 503) {
+        const fallback = getLocalFallback(text, path);
+        setMessages((prev) => [...prev, { role: "assistant", content: fallback }]);
+      } else {
+        const detail = err?.response?.data?.detail || err?.message || "Unknown error";
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: `I couldn't process that. ${detail}` },
+        ]);
+      }
     } finally {
       setLoading(false);
     }
