@@ -61,6 +61,25 @@ class LLMService:
         )
         return response.choices[0].message.content or ""
 
+    async def chat(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        max_tokens: int = 500,
+        temperature: float = 0.7,
+    ) -> str:
+        """Send a conversational chat request to the configured LLM."""
+        if not self.use_real_llm:
+            raise RuntimeError("No API key configured")
+
+        response = await self._openai.chat.completions.create(
+            model=self.model,
+            messages=messages,
+            max_tokens=max_tokens,
+            temperature=temperature,
+        )
+        return response.choices[0].message.content or ""
+
     async def parse_slip(self, raw_text: str) -> ParsedPolicy:
         parsed = PolicyDecoder.parse_policy_text(raw_text)
 

@@ -47,3 +47,7 @@ media/
 
 # Chroma vector DB
 data/chroma_db/
+
+# Autoinsurance docs (reference materials, screenshots, samples)
+AutoInsurance-docs/
+autoinsurance-docs/
