@@ -17,8 +17,9 @@ class Settings(BaseSettings):
     db_name: str = "policysight"
 
     # AI / LLM
-    openai_api_key: str = "sk-placeholder"
+    openai_api_key: str = "***"
     openai_model: str = "gpt-4"
+    openai_base_url: str = ""  # Empty = default OpenAI; set for Groq/OpenRouter etc.
 
     # Auth — local JWT (fallback when Clerk is not configured)
     jwt_secret: str = "change-me-in-production"

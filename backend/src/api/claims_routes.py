@@ -67,7 +67,7 @@ async def advocate_claim(
     raw_text = content.decode("utf-8", errors="ignore")
 
     settings = get_settings()
-    llm = LLMService(api_key=settings.openai_api_key, model=settings.openai_model)
+    llm = LLMService(api_key=settings.openai_api_key, model=settings.openai_model, base_url=settings.openai_base_url)
 
     # Get parsed policy (in production, fetch from DB for the user)
     policy = await llm.parse_slip("")

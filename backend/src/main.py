@@ -23,7 +23,9 @@ logger = logging.getLogger("policysight")
 
 settings = get_settings()
 
+from src.db.base import engine, Base, SessionLocal
 from src.db.seed import seed_demo_user
+from src.db.models import *  # noqa — ensure all models are imported
 
 app = FastAPI(
     title=settings.app_name,
@@ -46,7 +48,8 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def on_startup():
-    """Ensure demo user exists on startup."""
+    """Create tables and ensure demo user exists on startup."""
+    Base.metadata.create_all(bind=engine)
     seed_demo_user()
 
 
