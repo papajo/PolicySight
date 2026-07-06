@@ -17,11 +17,14 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
+  Menu,
+  MenuItem,
   useMediaQuery,
   useTheme,
   Divider,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import GavelIcon from "@mui/icons-material/Gavel";
 import LogoutIcon from "@mui/icons-material/Logout";
 import HomeIcon from "@mui/icons-material/Home";
@@ -59,24 +62,34 @@ import PolicyComparison from "./pages/PolicyComparison";
 import CopilotDashboard from "./pages/CopilotDashboard";
 import PolicyChatWidget from "./components/PolicyChatWidget";
 
-const NAV_ITEMS = [
-  { label: "Home", path: "/", icon: <HomeIcon /> },
-  { label: "Decoder", path: "/decoder", icon: <PolicyIcon /> },
-  { label: "Claims", path: "/claims", icon: <GavelOutlinedIcon /> },
-  { label: "Forecast", path: "/trajectory", icon: <TrendingUpIcon /> },
-  { label: "Lapse Bridge", path: "/lapse", icon: <ShieldIcon /> },
-  { label: "Timeline", path: "/timeline", icon: <TimelineIcon /> },
-  { label: "Scenarios", path: "/scenario", icon: <ScienceIcon /> },
-  { label: "Claim Intake", path: "/intake", icon: <InputIcon /> },
-  { label: "Decisions", path: "/decision", icon: <BalanceIcon /> },
-  { label: "Audit", path: "/audit", icon: <AssessmentIcon /> },
-  { label: "Edge Cases", path: "/edge-cases", icon: <BugReportIcon /> },
-  { label: "Cost Estimator", path: "/cost-estimator", icon: <AttachMoneyIcon /> },
-  { label: "State Rules", path: "/states", icon: <MapIcon /> },
-  { label: "Feedback", path: "/feedback", icon: <FeedbackIcon /> },
-  { label: "Compare", path: "/compare", icon: <CompareIcon /> },
-  { label: "Copilot", path: "/copilot", icon: <SmartToyIcon /> },
+/* ── All nav items ── */
+const ALL_NAV = [
+  { label: "Home", path: "/", icon: <HomeIcon fontSize="small" /> },
+  { label: "Decoder", path: "/decoder", icon: <PolicyIcon fontSize="small" /> },
+  { label: "Claims", path: "/claims", icon: <GavelOutlinedIcon fontSize="small" /> },
+  { label: "Forecast", path: "/trajectory", icon: <TrendingUpIcon fontSize="small" /> },
+  { label: "Lapse Bridge", path: "/lapse", icon: <ShieldIcon fontSize="small" /> },
+  { label: "Timeline", path: "/timeline", icon: <TimelineIcon fontSize="small" /> },
+  { label: "Scenarios", path: "/scenario", icon: <ScienceIcon fontSize="small" /> },
+  { label: "Claim Intake", path: "/intake", icon: <InputIcon fontSize="small" /> },
+  { label: "Decisions", path: "/decision", icon: <BalanceIcon fontSize="small" /> },
+  { label: "Audit", path: "/audit", icon: <AssessmentIcon fontSize="small" /> },
+  { label: "Edge Cases", path: "/edge-cases", icon: <BugReportIcon fontSize="small" /> },
+  { label: "Cost Estimator", path: "/cost-estimator", icon: <AttachMoneyIcon fontSize="small" /> },
+  { label: "State Rules", path: "/states", icon: <MapIcon fontSize="small" /> },
+  { label: "Feedback", path: "/feedback", icon: <FeedbackIcon fontSize="small" /> },
+  { label: "Compare", path: "/compare", icon: <CompareIcon fontSize="small" /> },
+  { label: "Copilot", path: "/copilot", icon: <SmartToyIcon fontSize="small" /> },
 ];
+
+/* ── Always visible in the top bar ── */
+const PRIMARY_NAV = ALL_NAV.filter((i) =>
+  ["/", "/decoder", "/claims", "/trajectory", "/copilot"].includes(i.path)
+);
+/* ── Everything else goes in the "More" menu ── */
+const MORE_NAV = ALL_NAV.filter((i) =>
+  !["/", "/decoder", "/claims", "/trajectory", "/copilot"].includes(i.path)
+);
 
 const App: React.FC = () => {
   const navigate = useNavigate();
@@ -86,6 +99,7 @@ const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("auth_token"));
   const [userEmail, setUserEmail] = useState<string | null>(localStorage.getItem("user_email"));
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [moreAnchor, setMoreAnchor] = useState<null | HTMLElement>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("auth_token");
@@ -93,9 +107,9 @@ const App: React.FC = () => {
     setUserEmail(localStorage.getItem("user_email"));
   }, [location.pathname]);
 
-  // Close drawer on route change
   useEffect(() => {
     setMobileOpen(false);
+    setMoreAnchor(null);
   }, [location.pathname]);
 
   const handleLogout = () => {
@@ -109,24 +123,25 @@ const App: React.FC = () => {
 
   const drawerWidth = 260;
 
+  /* ── Mobile drawer content ── */
   const drawerContent = (
     <Box sx={{ width: drawerWidth }}>
       <Box sx={{ p: 2, display: "flex", alignItems: "center", gap: 1 }}>
         <GavelIcon color="primary" />
-        <Typography variant="h6" fontWeight={700} color="primary.main">
+        <Typography variant="subtitle1" fontWeight={700} color="primary.main">
           PolicySight
         </Typography>
       </Box>
       <Divider />
-      <List>
-        {NAV_ITEMS.map((item) => (
+      <List dense>
+        {ALL_NAV.map((item) => (
           <ListItem key={item.path} disablePadding>
             <ListItemButton
               component={Link}
               to={item.path}
               selected={location.pathname === item.path}
               sx={{
-                py: 1.2,
+                py: 0.8,
                 "&.Mui-selected": {
                   backgroundColor: "primary.main",
                   color: "white",
@@ -135,8 +150,8 @@ const App: React.FC = () => {
                 },
               }}
             >
-              <ListItemIcon sx={{ minWidth: 40 }}>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.label} />
+              <ListItemIcon sx={{ minWidth: 36 }}>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.label} primaryTypographyProps={{ fontSize: "0.85rem" }} />
             </ListItemButton>
           </ListItem>
         ))}
@@ -146,19 +161,13 @@ const App: React.FC = () => {
           <Divider />
           <Box sx={{ p: 2 }}>
             <Chip
-              avatar={<Avatar sx={{ width: 28, height: 28 }}>{userEmail?.[0]?.toUpperCase() || "U"}</Avatar>}
+              avatar={<Avatar sx={{ width: 24, height: 24, fontSize: "0.75rem" }}>{userEmail?.[0]?.toUpperCase() || "U"}</Avatar>}
               label={userEmail || "User"}
               variant="outlined"
               size="small"
-              sx={{ maxWidth: "100%" }}
+              sx={{ maxWidth: "100%", fontSize: "0.75rem" }}
             />
-            <Button
-              fullWidth
-              startIcon={<LogoutIcon />}
-              onClick={handleLogout}
-              sx={{ mt: 1.5, justifyContent: "flex-start" }}
-              color="error"
-            >
+            <Button fullWidth startIcon={<LogoutIcon />} onClick={handleLogout} sx={{ mt: 1, justifyContent: "flex-start" }} color="error" size="small">
               Logout
             </Button>
           </Box>
@@ -170,109 +179,149 @@ const App: React.FC = () => {
   return (
     <>
       <CssBaseline />
-      <AppBar position="sticky" elevation={1}>
-        <Toolbar>
+
+      {/* ═══════════════ TOP BAR ═══════════════ */}
+      <AppBar position="sticky" elevation={0} sx={{ borderBottom: "1px solid rgba(255,255,255,0.12)" }}>
+        <Toolbar sx={{ minHeight: { xs: 44, sm: 48 }, px: { xs: 1, sm: 2 } }}>
+          {/* Hamburger — opens full drawer on mobile, "More" menu on desktop */}
           {isAuthenticated && (
             <IconButton
               color="inherit"
               edge="start"
-              onClick={() => setMobileOpen(!mobileOpen)}
-              sx={{ mr: 1 }}
+              size="small"
+              onClick={(e) => {
+                if (isMobile) setMobileOpen(true);
+                else setMoreAnchor(e.currentTarget);
+              }}
+              sx={{ mr: 0.5 }}
             >
-              <MenuIcon />
+              <MenuIcon fontSize="small" />
             </IconButton>
           )}
-          <GavelIcon sx={{ mr: 1 }} />
+
+          {/* Logo */}
+          <GavelIcon sx={{ mr: 0.5, fontSize: "1.1rem" }} />
           <Typography
-            variant="h6"
+            variant="subtitle1"
             component={Link}
             to="/"
+            noWrap
             sx={{
               textDecoration: "none",
               color: "inherit",
               fontWeight: 700,
-              letterSpacing: 1,
-              mr: 2,
-              fontSize: { xs: "0.95rem", sm: "1.1rem" },
+              letterSpacing: 0.5,
+              fontSize: { xs: "0.85rem", sm: "0.95rem" },
+              mr: 1.5,
             }}
           >
             PolicySight
           </Typography>
 
-          {/* Desktop nav */}
+          {/* Primary nav buttons — desktop only */}
           {isAuthenticated && !isMobile && (
-            <Box sx={{ flexGrow: 1, position: "relative" }}>
-              <Box
-                sx={{
-                  display: "flex",
-                  gap: 0,
-                  overflowX: "auto",
-                  scrollbarWidth: "none",
-                  "&::-webkit-scrollbar": { display: "none" },
-                }}
-              >
-                {NAV_ITEMS.map((item) => (
+            <Box sx={{ display: "flex", gap: 0, flexGrow: 1 }}>
+              {PRIMARY_NAV.map((item) => {
+                const active = location.pathname === item.path;
+                return (
                   <Button
                     key={item.path}
                     color="inherit"
                     component={Link}
                     to={item.path}
+                    size="small"
                     sx={{
-                      fontSize: "0.7rem",
+                      fontSize: "0.75rem",
                       minWidth: "auto",
-                      px: 0.8,
-                      py: 0.8,
-                      whiteSpace: "nowrap",
-                      fontWeight: location.pathname === item.path ? 700 : 400,
-                      borderBottom: location.pathname === item.path ? "2px solid white" : "2px solid transparent",
+                      px: 1.2,
+                      textTransform: "none",
+                      fontWeight: active ? 600 : 400,
+                      borderRadius: 0,
+                      borderBottom: active ? "2px solid #fff" : "2px solid transparent",
+                      opacity: active ? 1 : 0.85,
+                      "&:hover": { opacity: 1, borderBottom: "2px solid rgba(255,255,255,0.5)" },
                     }}
                   >
                     {item.label}
                   </Button>
-                ))}
-              </Box>
-              {/* Fade gradient on right edge */}
-              <Box
+                );
+              })}
+              {/* More button */}
+              <Button
+                color="inherit"
+                size="small"
+                startIcon={<MoreVertIcon sx={{ fontSize: "0.9rem" }} />}
+                onClick={(e) => setMoreAnchor(e.currentTarget)}
                 sx={{
-                  position: "absolute",
-                  top: 0,
-                  right: 0,
-                  bottom: 0,
-                  width: 40,
-                  background: "linear-gradient(to right, transparent, #1a237e)",
-                  pointerEvents: "none",
+                  fontSize: "0.75rem",
+                  minWidth: "auto",
+                  px: 1.2,
+                  textTransform: "none",
+                  borderRadius: 0,
+                  opacity: 0.85,
+                  "&:hover": { opacity: 1 },
                 }}
-              />
+              >
+                More
+              </Button>
             </Box>
           )}
 
-          {isAuthenticated && isMobile && <Box sx={{ flexGrow: 1 }} />}
-          {!isAuthenticated && <Box sx={{ flexGrow: 1 }} />}
+          {/* Spacer for mobile */}
+          {(isMobile || !isAuthenticated) && <Box sx={{ flexGrow: 1 }} />}
 
+          {/* Right side — user + logout */}
           {isAuthenticated ? (
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
               {!isMobile && (
                 <Chip
-                  avatar={<Avatar>{userEmail?.[0]?.toUpperCase() || "U"}</Avatar>}
+                  avatar={<Avatar sx={{ width: 22, height: 22, fontSize: "0.7rem" }}>{userEmail?.[0]?.toUpperCase() || "U"}</Avatar>}
                   label={userEmail || "User"}
                   variant="outlined"
                   size="small"
-                  sx={{ color: "white", borderColor: "rgba(255,255,255,0.5)" }}
+                  sx={{ color: "white", borderColor: "rgba(255,255,255,0.3)", fontSize: "0.7rem", height: 26 }}
                 />
               )}
               <IconButton color="inherit" onClick={handleLogout} size="small">
-                <LogoutIcon />
+                <LogoutIcon fontSize="small" />
               </IconButton>
             </Box>
           ) : (
-            <Button color="inherit" component={Link} to="/login">
+            <Button color="inherit" component={Link} to="/login" size="small" sx={{ fontSize: "0.8rem" }}>
               Login
             </Button>
           )}
         </Toolbar>
       </AppBar>
 
-      {/* Mobile Drawer */}
+      {/* ═══════════════ "MORE" DROPDOWN (desktop) ═══════════════ */}
+      <Menu
+        anchorEl={moreAnchor}
+        open={Boolean(moreAnchor)}
+        onClose={() => setMoreAnchor(null)}
+        PaperProps={{
+          sx: { mt: 1, maxHeight: 400, width: 220 },
+        }}
+        transformOrigin={{ horizontal: "left", vertical: "top" }}
+        anchorOrigin={{ horizontal: "left", vertical: "bottom" }}
+      >
+        {MORE_NAV.map((item) => (
+          <MenuItem
+            key={item.path}
+            component={Link}
+            to={item.path}
+            selected={location.pathname === item.path}
+            onClick={() => setMoreAnchor(null)}
+            dense
+            sx={{ py: 0.6, fontSize: "0.82rem" }}
+          >
+            <ListItemIcon sx={{ minWidth: 32 }}>{item.icon}</ListItemIcon>
+            {item.label}
+          </MenuItem>
+        ))}
+      </Menu>
+
+      {/* ═══════════════ MOBILE DRAWER ═══════════════ */}
       {isAuthenticated && (
         <Drawer
           variant="temporary"
