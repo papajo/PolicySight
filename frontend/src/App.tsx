@@ -404,7 +404,7 @@ const App: React.FC = () => {
         </Routes>
       </Container>
 
-      <PolicyChatWidget policyText="" />
+      <PolicyChatWidget currentPath={location.pathname} />
 
       <Box
         component="footer"

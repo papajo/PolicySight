@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   Box,
   Typography,
@@ -19,276 +19,539 @@ import CloseIcon from "@mui/icons-material/Close";
 import SendIcon from "@mui/icons-material/Send";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import PersonIcon from "@mui/icons-material/Person";
-import SourceIcon from "@mui/icons-material/Source";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import GavelIcon from "@mui/icons-material/Gavel";
+import { useNavigate } from "react-router-dom";
 import api from "../services/api";
-
-interface EvidenceAnswer {
-  question: string;
-  answer: string;
-  citations: string[];
-  confidence: string;
-  is_assumption: boolean;
-  missing_info: string[];
-}
 
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
-  answer?: EvidenceAnswer;
+  action?: string;
+  actionTarget?: string;
 }
 
-const confColor = (c: string) =>
-  c === "high" ? "success" : c === "medium" ? "warning" : "error";
-
-const SUGGESTED = [
-  "Am I covered?",
-  "What\u2019s my deductible?",
-  "Explain my exclusions",
-  "Do I have rental car coverage?",
-  "What should I do after an accident?",
-  "Is theft covered?",
-  "Is flood damage covered?",
-  "What if I hit another car?",
-  "What if someone hit me?",
-  "What if the driver was uninsured?",
-];
+interface ChatApiResponse {
+  reply: string;
+  action?: string;
+  action_target?: string;
+}
 
 interface Props {
-  policyText?: string;
+  currentPath?: string;
 }
 
-const PolicyChatWidget: React.FC<Props> = ({ policyText: externalText }) => {
+const PAGE_INFO: Record<string, { name: string; tagline: string }> = {
+  "/": { name: "Home", tagline: "Your insurance command center" },
+  "/decoder": { name: "Policy Decoder", tagline: "Understand your SLIP document" },
+  "/claims": { name: "Claims Advocate", tagline: "Fight for fair settlements" },
+  "/trajectory": { name: "Rate Forecast", tagline: "Predict your next premium" },
+  "/lapse": { name: "Lapse Bridge", tagline: "Bridge coverage gaps" },
+  "/timeline": { name: "Coverage Timeline", tagline: "Visualize your history" },
+  "/scenario": { name: "Scenario Checker", tagline: "Test hypothetical situations" },
+  "/intake": { name: "Claim Intake", tagline: "File a claim step by step" },
+  "/decision": { name: "Decision Draft", tagline: "Coverage decision analysis" },
+  "/audit": { name: "Audit Trail", tagline: "Track all actions" },
+  "/edge-cases": { name: "Edge Cases", tagline: "Unusual situations explained" },
+  "/cost-estimator": { name: "Cost Estimator", tagline: "Estimate out-of-pocket costs" },
+  "/states": { name: "State Rules", tagline: "State-specific requirements" },
+  "/feedback": { name: "Feedback", tagline: "Help us improve" },
+  "/compare": { name: "Policy Comparison", tagline: "Compare two policies" },
+  "/copilot": { name: "Copilot Dashboard", tagline: "Your AI copilot" },
+};
+
+const QUICK_ACTIONS: Record<string, string[]> = {
+  "/": [
+    "What can you do?",
+    "How does PolicySight work?",
+    "Is my data safe?",
+    "Take me to the Policy Decoder",
+  ],
+  "/decoder": [
+    "How do I upload my policy?",
+    "What is a SLIP document?",
+    "What coverages will you extract?",
+    "Explain liability coverage",
+  ],
+  "/claims": [
+    "How do I file a claim?",
+    "What are sub-limits?",
+    "What is actual cash value?",
+    "Help me understand my settlement",
+  ],
+  "/trajectory": [
+    "How is my premium calculated?",
+    "What affects my rate?",
+    "Should I switch carriers?",
+    "Explain the forecast",
+  ],
+  "/lapse": [
+    "What happens if my policy lapses?",
+    "Do I need SR-22?",
+    "How do I bridge a coverage gap?",
+  ],
+  "/scenario": [
+    "What if I hit a deer?",
+    "What if my car is stolen?",
+    "What if I'm in a hit-and-run?",
+  ],
+  "/intake": [
+    "What info do I need for a claim?",
+    "Walk me through the intake form",
+  ],
+  "/decision": [
+    "How do coverage decisions work?",
+    "What does escalation mean?",
+  ],
+  "/edge-cases": [
+    "What about rideshare coverage?",
+    "What if someone borrowed my car?",
+  ],
+  "/cost-estimator": [
+    "How do deductibles work?",
+    "Estimate my out-of-pocket costs",
+  ],
+  "/states": [
+    "What are my state's minimum limits?",
+    "Is my state no-fault?",
+  ],
+  "/compare": [
+    "What should I look for when comparing?",
+    "Help me compare two policies",
+  ],
+};
+
+const PolicyChatWidget: React.FC<Props> = ({ currentPath }) => {
   const theme = useTheme();
+  const navigate = useNavigate();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [open, setOpen] = useState(false);
-  const [policyText, setPolicyText] = useState(externalText || "");
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      role: "assistant",
-      content: "Hi, I can help explain your policy in plain English. I\u2019ll look for the relevant policy sections and show where the answer came from.",
-    },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
-  const [showSources, setShowSources] = useState<Record<number, boolean>>({});
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [initialized, setInitialized] = useState(false);
 
+  const path = currentPath || "/";
+  const pageInfo = PAGE_INFO[path] || PAGE_INFO["/"];
+  const quickActions = QUICK_ACTIONS[path] || QUICK_ACTIONS["/"];
+
+  // Initialize welcome message when opened or path changes
+  useEffect(() => {
+    if (open && !initialized) {
+      const welcomeMsg: ChatMessage = {
+        role: "assistant",
+        content: getWelcomeMessage(path),
+      };
+      setMessages([welcomeMsg]);
+      setInitialized(true);
+    }
+  }, [open, initialized, path]);
+
+  // Reset when path changes (if widget is open)
+  useEffect(() => {
+    if (open) {
+      const welcomeMsg: ChatMessage = {
+        role: "assistant",
+        content: getWelcomeMessage(path),
+      };
+      setMessages([welcomeMsg]);
+      setInitialized(true);
+      setQuestion("");
+    }
+  }, [path]);
+
+  // Scroll to bottom on new messages
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
-  const handleAsk = async (q?: string) => {
+  // Focus input when opened
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => inputRef.current?.focus(), 300);
+    }
+  }, [open]);
+
+  function getWelcomeMessage(routePath: string): string {
+    const info = PAGE_INFO[routePath] || PAGE_INFO["/"];
+    if (routePath === "/") {
+      return (
+        `Hi there! I'm **PolicySight Assistant**, your AI insurance guide.\n\n` +
+        `I can help you understand your policy, navigate claims, compare rates, ` +
+        `and answer questions about auto insurance.\n\n` +
+        `I see you're on the **${info.name}** page. How can I help you today?`
+      );
+    }
+    return (
+      `Hi! I'm **PolicySight Assistant**. I see you're on the **${info.name}** page — ${info.tagline}.\n\n` +
+      `I can help explain concepts, guide you through features, or answer insurance questions. ` +
+      `What would you like to know?`
+    );
+  }
+
+  const handleAsk = useCallback(async (q?: string) => {
     const text = q || question;
-    if (!text.trim() || !policyText.trim()) return;
+    if (!text.trim()) return;
+
     setQuestion("");
     setLoading(true);
     const userMsg: ChatMessage = { role: "user", content: text };
     setMessages((prev) => [...prev, userMsg]);
+
     try {
-      const res = await api.post("/policies/ask", { text: policyText, question: text });
-      const data: EvidenceAnswer = res.data;
+      const res = await api.post("/chat", {
+        messages: [...messages, userMsg].map((m) => ({ role: m.role, content: m.content })),
+        context: { page: path },
+      });
+      const data: ChatApiResponse = res.data;
       const assistantMsg: ChatMessage = {
         role: "assistant",
-        content: data.answer,
-        answer: data,
+        content: data.reply,
+        action: data.action,
+        actionTarget: data.action_target,
       };
       setMessages((prev) => [...prev, assistantMsg]);
     } catch (err: any) {
       const detail = err?.response?.data?.detail || err?.message || "Unknown error";
-      console.error("ChatWidget ask error:", detail, err);
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: `I couldn\u2019t answer that. ${detail}` },
+        { role: "assistant", content: `I couldn't process that. ${detail}` },
       ]);
     } finally {
       setLoading(false);
     }
+  }, [question, messages, path]);
+
+  const handleNavigate = (route: string) => {
+    navigate(route);
+    setOpen(false);
   };
 
-  const toggleSources = (idx: number) => {
-    setShowSources((prev) => ({ ...prev, [idx]: !prev[idx] }));
+  const handleActionClick = (msg: ChatMessage) => {
+    if (msg.action === "navigate" && msg.actionTarget) {
+      handleNavigate(msg.actionTarget);
+    }
   };
 
-  const needsPolicy = !policyText.trim();
+  const toggleOpen = () => {
+    setOpen((prev) => !prev);
+    if (!open) {
+      setInitialized(false);
+    }
+  };
 
   return (
     <>
+      {/* ── FAB Toggle Button ── */}
       <Zoom in={!open}>
         <Fab
           color="primary"
+          aria-label="Open chat assistant"
           sx={{
             position: "fixed",
             bottom: { xs: 16, sm: 24 },
             right: { xs: 16, sm: 24 },
             zIndex: 1300,
+            boxShadow: "0 4px 20px rgba(26,35,126,0.4)",
+            "&:hover": {
+              transform: "scale(1.05)",
+              boxShadow: "0 6px 24px rgba(26,35,126,0.5)",
+            },
+            transition: "all 0.2s ease-in-out",
           }}
-          onClick={() => setOpen(true)}
+          onClick={toggleOpen}
         >
           <ChatIcon />
         </Fab>
       </Zoom>
 
-      <Collapse in={open} orientation="horizontal" sx={{ position: "fixed", bottom: { xs: 16, sm: 24 }, right: { xs: 16, sm: 24 }, zIndex: 1300 }}>
+      {/* ── Chat Panel ── */}
+      <Collapse
+        in={open}
+        orientation="horizontal"
+        sx={{
+          position: "fixed",
+          bottom: { xs: 16, sm: 24 },
+          right: { xs: 16, sm: 24 },
+          zIndex: 1300,
+        }}
+      >
         <Paper
-          elevation={8}
+          elevation={12}
           sx={{
-            width: isMobile ? "calc(100vw - 32px)" : 380,
-            height: isMobile ? "calc(100vh - 80px)" : 600,
-            maxWidth: isMobile ? 400 : 380,
+            width: isMobile ? "calc(100vw - 32px)" : 400,
+            height: isMobile ? "calc(100vh - 80px)" : 620,
+            maxWidth: isMobile ? 400 : 400,
             display: "flex",
             flexDirection: "column",
             borderRadius: isMobile ? 2 : 3,
             overflow: "hidden",
+            border: "1px solid",
+            borderColor: "divider",
           }}
         >
-          {/* Header */}
-          <Box sx={{ bgcolor: "primary.main", color: "white", p: 2, display: "flex", alignItems: "center", gap: 1 }}>
-            <SmartToyIcon />
+          {/* ═══ Header ═══ */}
+          <Box
+            sx={{
+              bgcolor: "primary.main",
+              color: "white",
+              p: 2,
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+            }}
+          >
+            <Box
+              sx={{
+                width: 36,
+                height: 36,
+                borderRadius: "50%",
+                bgcolor: "rgba(255,255,255,0.15)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <GavelIcon fontSize="small" />
+            </Box>
             <Box sx={{ flex: 1 }}>
-              <Typography variant="subtitle2" fontWeight={600}>PolicySight Assistant</Typography>
-              <Typography variant="caption" sx={{ opacity: 0.9 }}>
-                {needsPolicy ? "No policy loaded" : "Using your uploaded policy"}
+              <Typography variant="subtitle2" fontWeight={700}>
+                PolicySight Assistant
+              </Typography>
+              <Typography variant="caption" sx={{ opacity: 0.85 }}>
+                {pageInfo.name} — {pageInfo.tagline}
               </Typography>
             </Box>
-            <IconButton size="small" sx={{ color: "white" }} onClick={() => setOpen(false)}>
+            <IconButton size="small" sx={{ color: "white" }} onClick={toggleOpen}>
               <CloseIcon />
             </IconButton>
           </Box>
 
-          {/* Policy paste area if no external text */}
-          {needsPolicy && (
-            <Box sx={{ p: 1.5, borderBottom: 1, borderColor: "divider" }}>
-              <TextField
-                fullWidth
-                size="small"
-                multiline
-                minRows={2}
-                maxRows={4}
-                placeholder="Paste your policy text to get started..."
-                value={policyText}
-                onChange={(e) => setPolicyText(e.target.value)}
-              />
-            </Box>
-          )}
-
-          {/* Messages */}
+          {/* ═══ Messages ═══ */}
           <Box
             ref={listRef}
-            sx={{ flex: 1, overflowY: "auto", p: 1.5, display: "flex", flexDirection: "column", gap: 1.5 }}
+            sx={{
+              flex: 1,
+              overflowY: "auto",
+              p: 2,
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+              bgcolor: "grey.50",
+            }}
           >
             {messages.map((msg, i) => (
-              <Box key={i} sx={{ display: "flex", flexDirection: msg.role === "user" ? "row-reverse" : "row", gap: 1 }}>
+              <Box
+                key={i}
+                sx={{
+                  display: "flex",
+                  flexDirection: msg.role === "user" ? "row-reverse" : "row",
+                  gap: 1,
+                  alignItems: "flex-start",
+                }}
+              >
+                {/* Avatar */}
                 <Box
                   sx={{
-                    maxWidth: "80%",
-                    bgcolor: msg.role === "user" ? "primary.main" : "grey.100",
-                    color: msg.role === "user" ? "white" : "text.primary",
-                    borderRadius: 2,
-                    px: 1.5,
-                    py: 1,
+                    width: 28,
+                    height: 28,
+                    borderRadius: "50%",
+                    bgcolor: msg.role === "user" ? "primary.main" : "grey.200",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                    mt: 0.5,
                   }}
                 >
-                  <Typography variant="body2">{msg.content}</Typography>
-
-                  {msg.answer && (
-                    <Box sx={{ mt: 1 }}>
-                      <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mb: 0.5 }}>
-                        <Chip label={msg.answer.confidence} size="small" color={confColor(msg.answer.confidence) as any} />
-                        {msg.answer.is_assumption && <Chip label="Assumption" size="small" color="warning" variant="outlined" />}
-                      </Box>
-
-                      {msg.answer.citations.length > 0 && (
-                        <>
-                          <Button
-                            size="small"
-                            startIcon={<SourceIcon />}
-                            onClick={() => toggleSources(i)}
-                            sx={{ textTransform: "none", fontSize: "0.7rem", p: 0, minWidth: 0 }}
-                          >
-                            {showSources[i] ? "Hide" : "Show"} sources ({msg.answer.citations.length})
-                          </Button>
-                          <Collapse in={showSources[i]}>
-                            {msg.answer.citations.map((c, j) => (
-                              <Typography key={j} variant="caption" color="text.secondary" sx={{ display: "block", fontStyle: "italic", fontSize: "0.65rem", mt: 0.3 }}>
-                                {c}
-                              </Typography>
-                            ))}
-                          </Collapse>
-                        </>
-                      )}
-
-                      {msg.answer.missing_info.length > 0 && (
-                        <Typography variant="caption" color="warning.dark" sx={{ display: "block", mt: 0.5, fontSize: "0.65rem" }}>
-                          Not found: {msg.answer.missing_info.join(", ")}
-                        </Typography>
-                      )}
-                    </Box>
+                  {msg.role === "user" ? (
+                    <PersonIcon sx={{ fontSize: 16, color: "white" }} />
+                  ) : (
+                    <SmartToyIcon sx={{ fontSize: 16, color: "text.secondary" }} />
                   )}
                 </Box>
-                <Box sx={{ mt: 0.5 }}>
-                  {msg.role === "user" ? <PersonIcon fontSize="small" color="primary" /> : <SmartToyIcon fontSize="small" color="disabled" />}
+
+                {/* Bubble */}
+                <Box sx={{ maxWidth: "80%" }}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      px: 1.5,
+                      py: 1,
+                      bgcolor: msg.role === "user" ? "primary.main" : "white",
+                      color: msg.role === "user" ? "white" : "text.primary",
+                      borderRadius: 2,
+                      border: msg.role === "assistant" ? "1px solid" : "none",
+                      borderColor: "divider",
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        whiteSpace: "pre-line",
+                        "& strong": { fontWeight: 600 },
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      {msg.content}
+                    </Typography>
+                  </Paper>
+
+                  {/* Action button */}
+                  {msg.action === "navigate" && msg.actionTarget && (
+                    <Button
+                      size="small"
+                      endIcon={<OpenInNewIcon sx={{ fontSize: "0.8rem" }} />}
+                      onClick={() => handleActionClick(msg)}
+                      sx={{
+                        mt: 0.5,
+                        textTransform: "none",
+                        fontSize: "0.7rem",
+                        color: "primary.main",
+                      }}
+                    >
+                      Go to {PAGE_INFO[msg.actionTarget]?.name || msg.actionTarget}
+                    </Button>
+                  )}
                 </Box>
               </Box>
             ))}
 
+            {/* Loading indicator */}
             {loading && (
-              <Box sx={{ display: "flex", gap: 1 }}>
-                <CircularProgress size={16} />
-                <Typography variant="caption" color="text.secondary">Checking your policy...</Typography>
+              <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                <CircularProgress size={14} />
+                <Typography variant="caption" color="text.secondary">
+                  Thinking...
+                </Typography>
               </Box>
             )}
           </Box>
 
-          {/* Suggested questions */}
-          <Box sx={{ px: 1.5, pb: 0.5, display: "flex", gap: 0.5, flexWrap: "wrap" }}>
-            {SUGGESTED.slice(0, 4).map((s) => (
-              <Chip
-                key={s}
-                label={s}
-                size="small"
-                variant="outlined"
-                onClick={() => handleAsk(s)}
-                sx={{ fontSize: "0.65rem", cursor: "pointer" }}
-              />
-            ))}
-          </Box>
+          {/* ═══ Quick Actions ═══ */}
+          {messages.length <= 2 && (
+            <Box
+              sx={{
+                px: 2,
+                pb: 1,
+                display: "flex",
+                gap: 0.5,
+                flexWrap: "wrap",
+              }}
+            >
+              {quickActions.map((action) => (
+                <Chip
+                  key={action}
+                  label={action}
+                  size="small"
+                  variant="outlined"
+                  onClick={() => handleAsk(action)}
+                  sx={{
+                    fontSize: "0.65rem",
+                    cursor: "pointer",
+                    borderColor: "primary.light",
+                    color: "primary.main",
+                    "&:hover": {
+                      bgcolor: "primary.main",
+                      color: "white",
+                    },
+                  }}
+                />
+              ))}
+            </Box>
+          )}
 
-          {/* Input */}
-          <Box sx={{ p: 1.5, borderTop: 1, borderColor: "divider", display: "flex", gap: 1 }}>
+          {/* ═══ Input ═══ */}
+          <Box
+            sx={{
+              p: 1.5,
+              borderTop: 1,
+              borderColor: "divider",
+              display: "flex",
+              gap: 1,
+              bgcolor: "white",
+            }}
+          >
             <TextField
+              inputRef={inputRef}
               fullWidth
               size="small"
-              placeholder="Ask about your policy..."
+              placeholder={`Ask about ${pageInfo.name.toLowerCase()}...`}
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !loading && handleAsk()}
-              disabled={loading || needsPolicy}
+              disabled={loading}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 3,
+                  bgcolor: "grey.50",
+                },
+              }}
             />
-            <IconButton color="primary" onClick={() => handleAsk()} disabled={!question.trim() || loading || needsPolicy}>
-              <SendIcon />
+            <IconButton
+              color="primary"
+              onClick={() => handleAsk()}
+              disabled={!question.trim() || loading}
+              sx={{
+                bgcolor: "primary.main",
+                color: "white",
+                "&:hover": { bgcolor: "primary.dark" },
+                "&.Mui-disabled": {
+                  bgcolor: "grey.300",
+                  color: "grey.500",
+                },
+              }}
+            >
+              <SendIcon fontSize="small" />
             </IconButton>
           </Box>
 
-          {/* Talk to a human */}
-          <Box sx={{ px: 1.5, pb: 1, textAlign: "center" }}>
+          {/* ═══ Footer ═══ */}
+          <Box
+            sx={{
+              px: 2,
+              pb: 1.5,
+              display: "flex",
+              flexDirection: "column",
+              gap: 0.5,
+            }}
+          >
             <Button
               size="small"
               startIcon={<SupportAgentIcon />}
               variant="text"
-              color="warning"
-              sx={{ textTransform: "none", fontSize: "0.7rem" }}
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                setMessages((prev) => [...prev, {
-                  role: "assistant",
-                  content: "A human review is recommended for complex claim decisions. Contact your insurance agent or a licensed claims adjuster for a definitive answer.",
-                }]);
+              color="inherit"
+              sx={{
+                textTransform: "none",
+                fontSize: "0.65rem",
+                color: "text.secondary",
+                justifyContent: "flex-start",
+              }}
+              onClick={() => {
+                setMessages((prev) => [
+                  ...prev,
+                  {
+                    role: "assistant",
+                    content:
+                      "For complex claim decisions or specific legal advice, I recommend consulting a licensed insurance agent or claims adjuster. You can also contact your carrier directly for definitive answers about your policy.",
+                  },
+                ]);
               }}
             >
               Talk to a human
             </Button>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ fontSize: "0.6rem", lineHeight: 1.3 }}
+            >
+              By messaging, you agree that this chat may be monitored and used
+              to improve PolicySight. AI responses are informational only and do
+              not constitute insurance advice.
+            </Typography>
           </Box>
         </Paper>
       </Collapse>
