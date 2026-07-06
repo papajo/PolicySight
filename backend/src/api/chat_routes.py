@@ -158,6 +158,122 @@ PAGE_CONTEXT = {
     },
 }
 
+
+PAGE_FALLBACKS = {
+    "/": (
+        "Welcome to the **PolicySight Home**! PolicySight is a neutral third-party middleware "
+        "connecting your Policy, Premium, and Claim into one intelligent dashboard.\n\n"
+        "Try asking me:\n"
+        "• **\"What can you do?\"** — for a list of all features\n"
+        "• **\"How does this work?\"** — for a general overview\n"
+        "• **\"Is my data safe?\"** — for security information"
+    ),
+    "/decoder": (
+        "You are on the **Policy Decoder** page. Here, you can upload or paste your "
+        "insurance policy declarations (SLIP document). Our system parses the legalese into "
+        "plain English and identifies any coverage gaps or risks.\n\n"
+        "Try asking me:\n"
+        "• **\"What is a coverage gap?\"**\n"
+        "• **\"How does the decoder work?\"**\n"
+        "• **\"What are the recommended limits?\"**"
+    ),
+    "/claims": (
+        "You are on the **Claims Advocate** page. This tool helps you prepare for claims, "
+        "compares your carrier's settlement offer against your policy's sub-limits, "
+        "and guides you in arguing for a fair payout.\n\n"
+        "Try asking me:\n"
+        "• **\"How do I file a claim?\"**\n"
+        "• **\"What if my carrier offers too little?\"**\n"
+        "• **\"What is a sub-limit?\"**"
+    ),
+    "/trajectory": (
+        "You are on the **Rate Forecast** page. The Rate Trajectory Bot (Renewal Oracle) predicts next year's premium "
+        "by comparing your current rates with anonymous peer market trends, offering a "
+        "Stay or Switch recommendation.\n\n"
+        "Try asking me:\n"
+        "• **\"What affects my rate?\"**\n"
+        "• **\"How does rate forecasting work?\"**\n"
+        "• **\"Should I switch carriers?\"**"
+    ),
+    "/lapse": (
+        "You are on the **Lapse Bridge** page. Covr-Shift acts as an automated fail-safe during "
+        "carrier transitions, monitoring your renewal window to trigger a temporary bridge policy "
+        "if needed to prevent a coverage gap.\n\n"
+        "Try asking me:\n"
+        "• **\"What is a coverage lapse?\"**\n"
+        "• **\"How does Lapse Bridge prevent gaps?\"**\n"
+        "• **\"How is a bridge policy triggered?\"**"
+    ),
+    "/scenario": (
+        "You are on the **Scenario Checker** page. Test hypothetical situations "
+        "(like rideshare driving, family members borrowing your car, or hit-and-run) "
+        "against your policy to see if you would be covered.\n\n"
+        "Try asking me:\n"
+        "• **\"What scenario checks can I run?\"**\n"
+        "• **\"Am I covered if I drive for Uber?\"**\n"
+        "• **\"What is a non-owned vehicle exclusion?\"**"
+    ),
+    "/cost-estimator": (
+        "You are on the **Cost Estimator** page. Estimate out-of-pocket expenses "
+        "based on your deductibles, co-pays, and policy limits for different accident severities.\n\n"
+        "Try asking me:\n"
+        "• **\"How do deductibles affect my out-of-pocket cost?\"**\n"
+        "• **\"What is estimated in my out-of-pocket expense?\"**"
+    ),
+    "/states": (
+        "You are on the **State Rules** page. Review minimum liability coverages, "
+        "no-fault rules, and state-specific regulations for auto insurance.\n\n"
+        "Try asking me:\n"
+        "• **\"What are state minimum coverages?\"**\n"
+        "• **\"What is no-fault insurance?\"**"
+    ),
+    "/compare": (
+        "You are on the **Policy Comparison** page. Upload two different policy "
+        "declarations side-by-side to compare coverages, limits, deductibles, and gap alerts.\n\n"
+        "Try asking me:\n"
+        "• **\"How do I compare two policies?\"**\n"
+        "• **\"What details are shown in policy comparison?\"**"
+    ),
+    "/copilot": (
+        "You are on the **Copilot Dashboard**. View your active policies, "
+        "recent claim status, rate trends, and overall coverage health scores at a glance.\n\n"
+        "Try asking me:\n"
+        "• **\"What is the Copilot Dashboard?\"**\n"
+        "• **\"What does my coverage score mean?\"**"
+    ),
+}
+
+LOCAL_KB = {
+    ("rate", "premium", "cost", "price", "trajectory", "oracle", "affect"): (
+        "Auto insurance premiums are affected by several factors:\n\n"
+        "• **Your Record**: At-fault accidents, speeding tickets, and violations raise rates.\n"
+        "• **Location**: High-traffic zip codes and areas with high theft rates typically have higher premiums.\n"
+        "• **Vehicle**: Safer cars with high crash-test ratings and security features cost less to insure.\n"
+        "• **Deductible**: Raising your deductible lowers your monthly premium, while lowering it raises your premium.\n\n"
+        "Visit the **Rate Forecast** page to predict your next renewal premium based on peer market data."
+    ),
+    ("deductible", "collision", "comprehensive"): (
+        "A **deductible** is the out-of-pocket amount you pay before insurance covers repairs:\n\n"
+        "• **Collision Deductible**: Applies when you hit another vehicle or object (regardless of fault).\n"
+        "• **Comprehensive Deductible**: Applies to non-collision damage (theft, storm damage, fire, animal strike).\n\n"
+        "A lower deductible reduces your claim expense but increases your premium."
+    ),
+    ("accident", "claim", "file", "intake", "crash", "settlement"): (
+        "If you are in an accident:\n\n"
+        "1. **Safety First**: Move to safety, check for injuries, and call 911 if needed.\n"
+        "2. **Document Everything**: Take photos of both vehicles, license plates, and the scene. Get names and numbers.\n"
+        "3. **Claim Intake**: Use our **Claim Intake** page to upload details, photos, and police reports.\n"
+        "4. **Advocate**: The **Claims Advocate** page compares your carrier's settlement offer against policy sub-limits to fight low-ball offers."
+    ),
+    ("gap", "exclusion", "underinsured", "uninsured", "um", "uim"): (
+        "A **coverage gap** is a risk of out-of-pocket expense due to missing or too-low coverage limits:\n\n"
+        "• **Uninsured Motorist (UM/UIM)**: Crucial gap if an at-fault driver has no insurance.\n"
+        "• **Low Property Damage**: Recommended minimum is $50,000 to cover multi-car accidents.\n"
+        "• **Exclusions**: Intentional acts, track racing, and commercial driving (e.g., ridesharing) are typically excluded without endorsements."
+    ),
+}
+
+
 GENERAL_SYSTEM = (
     "You are PolicySight Assistant, an AI-powered guide for auto insurance. "
     "You help users understand their policies, navigate claims, compare rates, "
@@ -293,22 +409,27 @@ async def chat(
         except Exception as exc:
             logger.warning("LLM chat response failed; using deterministic fallback: %s", exc)
 
+    # ── Local KB lookup (no LLM needed fallback) ──
+    for keywords, answer in LOCAL_KB.items():
+        if any(kw in user_lower for kw in keywords):
+            return ChatResponse(reply=answer)
+
     # ── Fallback response ──
     page_name = page_info.get("name", "this page")
-    return ChatResponse(
-        reply=(
-            f"I'm the PolicySight Assistant. You're currently on the **{page_name}** page. "
-            f"I can help you understand insurance concepts, navigate the app, and answer questions "
-            f"about your policy, claims, or rates.\n\n"
-            f"Try asking me:\n"
-            f"• \"What can you do?\"\n"
-            f"• \"How does the policy decoder work?\"\n"
-            f"• \"What if I'm in a car accident?\"\n"
-            f"• \"Help me file a claim\"\n\n"
-            f"For specific claim decisions or legal advice, please confirm details with "
-            f"a licensed insurance professional or your carrier."
-        )
+    fallback_reply = PAGE_FALLBACKS.get(
+        page,
+        f"I'm the PolicySight Assistant. You're currently on the **{page_name}** page. "
+        f"I can help you understand insurance concepts, navigate the app, and answer questions "
+        f"about your policy, claims, or rates.\n\n"
+        f"Try asking me:\n"
+        f"• \"What can you do?\"\n"
+        f"• \"How does the policy decoder work?\"\n"
+        f"• \"What if I'm in a car accident?\"\n"
+        f"• \"Help me file a claim\"\n\n"
+        f"For specific claim decisions or legal advice, please confirm details with "
+        f"a licensed insurance professional or your carrier."
     )
+    return ChatResponse(reply=fallback_reply)
 
 
 @router.get("/pages")
