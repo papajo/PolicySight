@@ -600,7 +600,7 @@ const PolicyChatWidget: React.FC<Props> = ({ currentPath }) => {
           </Box>
 
           {/* ═══ Quick Actions ═══ */}
-          {messages.length <= 2 && (
+          {quickActions.length > 0 && (
             <Box
               sx={{
                 px: 2,
