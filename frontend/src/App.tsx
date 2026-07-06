@@ -201,7 +201,7 @@ const App: React.FC = () => {
 
           {/* Desktop nav */}
           {isAuthenticated && !isMobile && (
-            <Box sx={{ display: "flex", gap: 0.5, flexGrow: 1, overflow: "auto" }}>
+            <Box sx={{ display: "flex", gap: 0, flexGrow: 1, flexWrap: "wrap" }}>
               {NAV_ITEMS.map((item) => (
                 <Button
                   key={item.path}
@@ -209,9 +209,10 @@ const App: React.FC = () => {
                   component={Link}
                   to={item.path}
                   sx={{
-                    fontSize: "0.78rem",
+                    fontSize: "0.7rem",
                     minWidth: "auto",
-                    px: 1.2,
+                    px: 0.8,
+                    py: 0.8,
                     whiteSpace: "nowrap",
                     fontWeight: location.pathname === item.path ? 700 : 400,
                     borderBottom: location.pathname === item.path ? "2px solid white" : "2px solid transparent",
