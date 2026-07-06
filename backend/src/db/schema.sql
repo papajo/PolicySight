@@ -25,17 +25,18 @@ CREATE TABLE IF NOT EXISTS policies (
 CREATE INDEX idx_policies_user_id ON policies(user_id);
 
 CREATE TABLE IF NOT EXISTS policy_snapshots (
-    id SERIAL PRIMARY KEY,
+    id SERIAL,
     policy_id INTEGER NOT NULL REFERENCES policies(id) ON DELETE CASCADE,
     raw_slip_content TEXT,
     parsed_limits JSONB,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    PRIMARY KEY (id, created_at)
 );
 
 CREATE INDEX idx_policy_snapshots_policy_id ON policy_snapshots(policy_id);
 
 CREATE TABLE IF NOT EXISTS claims (
-    id SERIAL PRIMARY KEY,
+    id SERIAL,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     carrier_id VARCHAR(100),
     status VARCHAR(50) DEFAULT 'filed',
@@ -43,17 +44,19 @@ CREATE TABLE IF NOT EXISTS claims (
     photo_blob TEXT,
     description TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    PRIMARY KEY (id, filed_date)
 );
 
 CREATE INDEX idx_claims_user_id ON claims(user_id);
 
 CREATE TABLE IF NOT EXISTS rate_snapshots (
-    id SERIAL PRIMARY KEY,
+    id SERIAL,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     carrier_id VARCHAR(100) NOT NULL,
     date TIMESTAMPTZ DEFAULT NOW(),
-    rate FLOAT NOT NULL
+    rate FLOAT NOT NULL,
+    PRIMARY KEY (id, date)
 );
 
 CREATE INDEX idx_rate_snapshots_user_id ON rate_snapshots(user_id);

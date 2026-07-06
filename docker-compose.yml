@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   backend:
     build:
@@ -35,16 +33,17 @@ services:
       - policysight-net
 
   db:
-    image: postgres:15-alpine
+    image: timescale/timescaledb-ha:pg16
     ports:
-      - "5432:5432"
+      - "6543:5432"
     environment:
       POSTGRES_USER: policysight
       POSTGRES_PASSWORD: policysight
       POSTGRES_DB: policysight
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./backend/src/db/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+      - ./backend/src/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./backend/src/db/timescaledb-init.sql:/docker-entrypoint-initdb.d/02-timescaledb-init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U policysight"]
       interval: 5s
