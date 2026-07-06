@@ -20,10 +20,14 @@ class Settings(BaseSettings):
     openai_api_key: str = "sk-placeholder"
     openai_model: str = "gpt-4"
 
-    # Auth
+    # Auth — local JWT (fallback when Clerk is not configured)
     jwt_secret: str = "change-me-in-production"
     jwt_algorithm: str = "HS256"
     jwt_expiration_hours: int = 24
+
+    # Clerk (production auth) — leave blank to use local JWT only
+    clerk_secret_key: str = ""
+    clerk_publishable_key: str = ""
 
     # Redis (optional, for Celery scheduler)
     redis_url: str = "redis://localhost:6379/0"
